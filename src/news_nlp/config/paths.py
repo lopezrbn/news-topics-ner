@@ -11,6 +11,9 @@ DIR_MODELS = DIR_BASE / "models"
 DIR_NOTEBOOKS = DIR_BASE / "notebooks"
 DIR_SRC = DIR_BASE / "src"
 
+# Config file paths
+PROMPTS_FILE = DIR_CONFIG / "prompts.yaml"
+
 # Data subdirectories
 DIR_DATA_COMPRESSED = DIR_DATA / "compressed"
 DIR_DATA_RAW = DIR_DATA / "raw"
@@ -31,13 +34,17 @@ DF_ENTITIES_RAW = DIR_DATA_PROCESSED / "df_entities_raw.parquet"
 DF_ENTITIES = DIR_DATA_PROCESSED / "df_entities.parquet"
 DF_NEWS_ENTITIES = DIR_DATA_PROCESSED / "df_news_entities.parquet"
 
-# Config file paths
-PROMPTS_FILE = DIR_CONFIG / "prompts.yaml"
+# Model subdirectories
+DIR_MODELS_TOPICS = DIR_MODELS / "topics"
+DIR_MODELS_NER = DIR_MODELS / "ner"
 
 # Model file paths
-TFIDF_VECTORIZER = DIR_MODELS / "tfidf_vectorizer.joblib"
-SVD_MODEL = DIR_MODELS / "svd_model.joblib"
-KMEANS_MODEL = DIR_MODELS / "kmeans_model.joblib"
+TFIDF_VECTORIZER = DIR_MODELS_TOPICS / "tfidf_vectorizer.joblib"
+SVD_MODEL = DIR_MODELS_TOPICS / "svd_model.joblib"
+KMEANS_MODEL = DIR_MODELS_TOPICS / "kmeans_model.joblib"
+
+MODEL_NER_SPACY = DIR_MODELS_NER / "en_core_web_md"
+# MODEL_NER_SPACY_SM = DIR_MODELS_NER / "en_core_web_sm"
 
 # .env file path
 ENV_FILE = DIR_BASE / ".env"
