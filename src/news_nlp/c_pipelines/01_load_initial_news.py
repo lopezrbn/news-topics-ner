@@ -2,10 +2,10 @@ from pathlib import Path
 import sys
 BASE_DIR = str(Path(__file__).resolve().parents[1])
 if BASE_DIR not in sys.path:
+    print(f"Adding {BASE_DIR} to sys.path")
     sys.path.insert(0, BASE_DIR)
-import config.paths as paths
-from config.database import get_engine
-import config.paths as paths
+import a_config.paths as paths
+from b_db.connection import get_engine
 
 from typing import Literal
 
@@ -38,12 +38,10 @@ def load_data_into_news_table(
             raise ValueError(f"Column '{col}' not found in dataframe from {path}")
 
     # Add the columns missing in the dataframe but expected by the `news` table
-    df["external_id"] = None          # not used for now
     df["source"] = source
-    df["text_clean"] = df["text"]
 
     # Keep only the columns expected by the `news` table
-    cols_to_keep = ["external_id", "source", "title", "content", "text_clean"]
+    cols_to_keep = ["source", "title", "content", "text"]
     df_result = df[cols_to_keep].copy()
 
     engine = get_engine()
