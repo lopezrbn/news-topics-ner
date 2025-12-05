@@ -4,15 +4,18 @@ from pathlib import Path
 DIR_BASE = Path(__file__).parents[3].resolve()
 
 # Subdirectories
+DIR_CONFIG = DIR_BASE / "config"
 DIR_DATA = DIR_BASE / "data"
 DIR_DB = DIR_BASE / "db"
-DIR_CONFIG = DIR_BASE / "config"
 DIR_MODELS = DIR_BASE / "models"
 DIR_NOTEBOOKS = DIR_BASE / "notebooks"
 DIR_SRC = DIR_BASE / "src"
 
 # Config file paths
 PROMPTS_FILE = DIR_CONFIG / "prompts.yaml"
+
+# DB file paths
+SCHEMA_SQL_FILE = DIR_DB / "schema.sql"
 
 # Data subdirectories
 DIR_DATA_COMPRESSED = DIR_DATA / "compressed"
