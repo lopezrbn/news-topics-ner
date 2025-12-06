@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-import a_config.paths as paths
-from b_db.connection import get_engine
+import config.paths as paths
+from db.connection import get_engine
 
 
 def read_schema_sql() -> str:
