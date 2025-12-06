@@ -3,7 +3,7 @@
 -- =========================================================
 
 -- ======================
--- Table: news
+-- 1) Table: news
 -- ======================
 CREATE TABLE IF NOT EXISTS news (
     id_news      BIGSERIAL PRIMARY KEY,
@@ -19,22 +19,26 @@ CREATE INDEX IF NOT EXISTS idx_news_source
 
 
 -- ======================
--- Table: topics_model_training_runs
+-- 2) Table: topics_model_training_runs
 -- Each row represents one training run of the topics detector
 -- ======================
 CREATE TABLE IF NOT EXISTS topics_model_training_runs (
-    id_run             BIGSERIAL PRIMARY KEY,
-    id_mlflow_run      VARCHAR(255),         -- optional, to link with MLflow later
-    model_name         VARCHAR(100) NOT NULL DEFAULT 'tfidf_svd_kmeans',
-    n_components       INT NOT NULL,         -- number of SVD components
-    n_clusters         INT NOT NULL,         -- k in K-Means
-    tfidf_max_features INT,
-    tfidf_min_df       FLOAT,
-    tfidf_max_df       FLOAT,
-    random_state       INT,
-    silhouette         FLOAT,
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    is_active          BOOLEAN NOT NULL DEFAULT TRUE
+    id_run              BIGSERIAL PRIMARY KEY,
+    id_mlflow_run       VARCHAR(255),         -- optional, to link with MLflow later
+    model_name          VARCHAR(100) NOT NULL DEFAULT 'tfidf_svd_kmeans',
+    tfidf_max_features  INT,
+    tfidf_max_df        FLOAT,
+    tfidf_min_df        FLOAT,
+    tfidf_ngram_range   TEXT,                 -- e.g. '(1, 2)'
+    tfidf_stop_words    VARCHAR(50) NOT NULL DEFAULT 'english',
+    svd_n_components    INT NOT NULL,         -- number of SVD components
+    kmeans_n_clusters   INT NOT NULL,         -- k in K-Means
+    kmeans_n_init       VARCHAR(20) NOT NULL DEFAULT 'auto', -- 'auto', '10', ...
+    top_terms_per_topic INT,
+    random_state        INT,
+    silhouette          FLOAT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_active           BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- Ensure there can be at most *one* active topic_run at a time
@@ -44,7 +48,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_topics_model_training_runs_is_active
 
 
 -- ======================
--- Table: topics
+-- 3) Table: topics
 -- Each row is a single topic (cluster) for a given run
 -- ======================
 CREATE TABLE IF NOT EXISTS topics (
@@ -63,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_topics_id_run
 
 
 -- ======================
--- Table: terms_per_topic
+-- 4) Table: terms_per_topic
 -- Top terms for each topic (cluster) in a given run
 -- ======================
 CREATE TABLE IF NOT EXISTS terms_per_topic (
@@ -85,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_terms_per_topic_id_run
 
 
 -- ======================
--- Table: topics_per_news
+-- 5) Table: topics_per_news
 -- Assignment of each news item to a topic (cluster) for a given run
 -- ======================
 CREATE TABLE IF NOT EXISTS topics_per_news (
@@ -108,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_topics_per_news_id_run
 
 
 -- ======================
--- Table: entities
+-- 6) Table: entities
 -- Global table of unique named entities detected in the corpus
 -- ======================
 CREATE TABLE IF NOT EXISTS entities (
@@ -126,7 +130,7 @@ CREATE INDEX IF NOT EXISTS idx_entities_entity_text_norm
 
 
 -- ======================
--- Table: entities_per_news
+-- 7) Table: entities_per_news
 -- Mentions of entities in each news item
 -- ======================
 CREATE TABLE IF NOT EXISTS entities_per_news (
