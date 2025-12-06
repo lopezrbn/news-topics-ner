@@ -180,7 +180,7 @@ def save_topic_model_artifacts(
     """
     Save model artifacts (vectorizer, SVD, KMeans) under a directory for this run.
     """
-    run_dir = paths.DIR_MODELS_TOPICS / f"run_{id_run}"
+    run_dir = paths.DIR_MODELS_TOPICS / f"run_{str(id_run).zfill(2)}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
     joblib.dump(artifacts.vectorizer, run_dir / "tfidf_vectorizer.joblib")
