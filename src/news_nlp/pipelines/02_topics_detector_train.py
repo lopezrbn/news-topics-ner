@@ -46,7 +46,6 @@ def main() -> None:
     df_train = load_training_news(engine=engine)
     texts = df_train["text"].tolist()
     news_ids = df_train["id_news"].to_numpy()
-
     print(f"Loaded {len(df_train)} training news from the database.")
 
     # 2) Train model
