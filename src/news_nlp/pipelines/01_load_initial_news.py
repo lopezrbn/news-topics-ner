@@ -4,8 +4,8 @@ BASE_DIR = str(Path(__file__).resolve().parents[1])
 if BASE_DIR not in sys.path:
     print(f"Adding {BASE_DIR} to sys.path")
     sys.path.insert(0, BASE_DIR)
-import a_config.paths as paths
-from b_db.connection import get_engine
+import config.paths as paths
+from db.connection import get_engine
 
 from typing import Literal
 
