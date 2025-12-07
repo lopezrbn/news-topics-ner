@@ -59,7 +59,7 @@ def load_data_into_news_table(
     # "id_news" column is SERIAL in DB, so we do not set it here
     # "ingested_at" column is set by the DB default (NOW()), so not need either
     df_news = df_raw[["title", "content", "text"]].copy()
-    df_news = df_news.insert(0, "source", source)
+    df_news.insert(0, "source", source)
 
     engine = get_engine()
 
