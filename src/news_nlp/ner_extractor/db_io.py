@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, Optional, Tuple, Any, Iterable
 
 import pandas as pd
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from news_nlp.db.connection import get_engine
@@ -63,12 +64,12 @@ def load_news_to_process(
     """
     engine = get_engine()
 
-    base_query = """
+    base_query = text("""
         SELECT n.id_news, n.text
         FROM news AS n
         LEFT JOIN entities_per_news AS e
           ON n.id_news = e.id_news
-    """
+    """)
 
     conditions = []
     params: Dict[str, Any] = {}
