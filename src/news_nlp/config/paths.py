@@ -38,8 +38,8 @@ DF_ENTITIES = DIR_DATA_PROCESSED / "df_entities.parquet"
 DF_NEWS_ENTITIES = DIR_DATA_PROCESSED / "df_news_entities.parquet"
 
 # Model subdirectories
-DIR_MODELS_TOPICS = DIR_MODELS / "topics"
-DIR_MODELS_NER = DIR_MODELS / "ner"
+DIR_MODELS_TOPICS = DIR_MODELS / "topics_detector"
+DIR_MODELS_NER = DIR_MODELS / "ner_extractor"
 
 # Model file paths
 TFIDF_VECTORIZER = DIR_MODELS_TOPICS / "tfidf_vectorizer.joblib"
