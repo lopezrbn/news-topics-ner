@@ -1,19 +1,14 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Literal
 
 import joblib
 import numpy as np
-import pandas as pd
-from sqlalchemy.engine import Engine
 from sklearn.cluster import KMeans
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
 from sklearn.pipeline import Pipeline
 
-from news_nlp.db.connection import get_engine
 from news_nlp.config import paths
 
 
@@ -55,36 +50,11 @@ class TopicModelArtifacts:
     silhouette: float
 
 
-def load_training_news(engine: Engine | None = None) -> pd.DataFrame:
-    """
-    Load training news from the database.
-
-    Returns a dataframe with columns:
-      - id_news
-      - text
-    """
-    if engine is None:
-        engine = get_engine()
-
-    query = """
-        SELECT id_news, text
-        FROM news
-        WHERE source = 'train'
-          AND text IS NOT NULL
-    """
-
-    df = pd.read_sql(query, con=engine)
-    if df.empty:
-        raise ValueError("No training news found in the database (source='train').")
-
-    return df
-
-
 def load_topic_pipeline(id_run: int) -> Pipeline:
     """
     Load the fitted sklearn Pipeline (TF-IDF + SVD + KMeans) for the given run.
     """
-    run_dir = paths.DIR_MODELS_TOPIC / f"run_{id_run}"
+    run_dir = paths.DIR_MODELS_TOPICS / f"run_{id_run}"
     pipeline_path = run_dir / "topic_pipeline.joblib"
 
     if not pipeline_path.exists():
@@ -231,7 +201,7 @@ def save_topic_model_artifacts(
     artifacts: TopicModelArtifacts,
 ) -> None:
     """
-    Save model artifacts (vectorizer, SVD, KMeans) under a directory for this run.
+    Save model artifacts (pipeline, vectorizer, SVD, KMeans) under a directory for this run.
     """
     
     # Create run directory

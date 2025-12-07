@@ -7,7 +7,88 @@ from sqlalchemy.engine import Engine
 from news_nlp.db.connection import get_engine
 
 
-def insert_topics_model_training_run_into_db(
+def get_active_run_id(engine: Engine | None = None) -> int:
+    """
+    Return the id_run of the active model in the "topics_model_training_run" table.
+
+    If no active run is found, raises a ValueError.
+
+    The active run is defined as the row in topics_model_training_runs
+    with is_active = true. The partial unique index on is_active=true
+    should guarantee at most one such row.
+    """
+    if engine is None:
+        engine = get_engine()
+
+    sql = text(
+        """
+        SELECT id_run
+        FROM topics_model_training_runs
+        WHERE is_active = true
+        ORDER BY created_at DESC
+        LIMIT 1
+        """
+    )
+
+    with engine.connect() as conn:
+        result = conn.execute(sql).scalar()
+
+    if result is None:
+        raise ValueError("No active topics_model_training_runs found (is_active = true).")
+
+    return int(result)
+
+
+def load_training_texts() -> pd.Series:
+    """
+    Load training texts (source='train') from the `news` table.
+
+    Returns
+    -------
+    texts : pandas Series
+        Series of cleaned texts to be used for training.
+    """
+    engine = get_engine()
+
+    query = """
+        SELECT text
+        FROM news
+        WHERE source = 'train'
+          AND text IS NOT NULL
+    """
+
+    df = pd.read_sql(query, con=engine)
+    if df.empty:
+        raise ValueError("No training texts found in news (source='train').")
+
+    return df["text"]
+
+
+def load_news_without_topics_for_run(id_run: int) -> pd.DataFrame:
+    """
+    Load news that do not yet have a topic assigned for the given run.
+
+    Returns a dataframe with columns:
+      - id_news
+      - text
+    """
+    engine = get_engine()
+
+    query = """
+        SELECT n.id_news, n.text
+        FROM news AS n
+        LEFT JOIN topics_per_news AS t
+          ON n.id_news = t.id_news
+         AND t.id_run = %(id_run)s
+        WHERE t.id_news IS NULL
+          AND n.text IS NOT NULL
+    """
+
+    df = pd.read_sql(query, con=engine, params={"id_run": id_run})
+    return df
+
+
+def insert_topics_model_training_run_df(
     df_run: pd.DataFrame,
     engine: Optional[Engine] = None,
 ) -> int:
@@ -83,7 +164,7 @@ def insert_topics_model_training_run_into_db(
     return int(id_run)
 
 
-def save_topics_dataframe(
+def insert_topics_df(
     df_topics: pd.DataFrame,
     engine: Optional[Engine] = None,
 ) -> None:
@@ -115,7 +196,7 @@ def save_topics_dataframe(
     print(f"Inserted {len(df_topics)} rows into 'topics'.")
 
 
-def save_terms_per_topic_dataframe(
+def insert_terms_per_topic_df(
     df_terms_per_topic: pd.DataFrame,
     engine: Optional[Engine] = None,
 ) -> None:
@@ -148,7 +229,7 @@ def save_terms_per_topic_dataframe(
     print(f"Inserted {len(df_terms_per_topic)} rows into 'terms_per_topic'.")
 
 
-def save_topics_per_news_dataframe(
+def insert_topics_per_news_df(
     df_topics_per_news: pd.DataFrame,
     engine: Optional[Engine] = None,
 ) -> None:

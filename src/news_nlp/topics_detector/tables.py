@@ -6,7 +6,7 @@ import pandas as pd
 from news_nlp.topics_detector.model import TopicModelConfig, TopicModelArtifacts
 
 
-def build_topics_model_training_run_row(
+def build_topics_model_training_run_df(
     config: TopicModelConfig,
     artifacts: TopicModelArtifacts,
 ) -> pd.DataFrame:
@@ -34,10 +34,10 @@ def build_topics_model_training_run_row(
     return pd.DataFrame(data)
 
 
-def build_topics_dataframe(
+def build_topics_df(
     id_run: int,
-    cluster_labels: np.ndarray,
     topic_names: Dict[int, str],
+    artifacts: TopicModelArtifacts,
 ) -> pd.DataFrame:
     """
     Build a dataframe for the topics table.
@@ -48,6 +48,7 @@ def build_topics_dataframe(
       - topic_name
       - topic_size
     """
+    cluster_labels = artifacts.cluster_labels
     unique_topics = sorted(set(cluster_labels.tolist()))
     rows = []
 
@@ -68,7 +69,7 @@ def build_topics_dataframe(
     return pd.DataFrame(rows)
 
 
-def build_terms_per_topic_dataframe(
+def build_terms_per_topic_df(
     id_run: int,
     top_terms_per_topic: Dict[int, List[Tuple[str, float]]],
 ) -> pd.DataFrame:
@@ -99,7 +100,7 @@ def build_terms_per_topic_dataframe(
     return pd.DataFrame(rows)
 
 
-def build_topics_per_news_dataframe(
+def build_topics_per_news_df(
     id_run: int,
     news_ids: np.ndarray,
     cluster_labels: np.ndarray,

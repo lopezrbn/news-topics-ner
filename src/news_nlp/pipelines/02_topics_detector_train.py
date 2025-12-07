@@ -5,71 +5,88 @@ from news_nlp.db.connection import get_engine
 from news_nlp.topics_detector.model import (
     TopicModelConfig,
     TopicModelArtifacts,
-    load_training_news,
     train_topic_model,
     compute_top_terms_per_topic,
     save_topic_model_artifacts,
 )
 from news_nlp.topics_detector.tables import (
-    build_topics_model_training_run_row,
-    build_topics_dataframe,
-    build_terms_per_topic_dataframe,
-    build_topics_per_news_dataframe,
+    build_topics_model_training_run_df,
+    build_topics_df,
+    build_terms_per_topic_df,
 )
 from news_nlp.topics_detector.db_io import (
-    insert_topics_model_training_run_into_db,
-    save_topics_dataframe,
-    save_terms_per_topic_dataframe,
-    save_topics_per_news_dataframe,
+    load_training_texts,
+    insert_topics_model_training_run_df,
+    insert_topics_df,
+    insert_terms_per_topic_df,
 )
-from news_nlp.topics_detector.naming import generate_topic_names_with_llm
+from news_nlp.topics_detector.topics_naming import (
+    generate_topic_names_with_llm
+)
 
 
 def main() -> None:
     """
-    Train the topics detector model, persist model training run metadata,
-    topics, terms per topic and topics per news into the database,
-    and save model artifacts to disk.
+    Topics detector training pipeline.
+
+    Steps:
+      1) Load environment variables and DB connection
+      2) Load training texts from the database
+      3) Train topic model (sklearn Pipeline)
+      4) Insert training run metadata into topics_model_training_runs
+      5) Build and insert topics and terms_per_topic tables
+      6) Save model artifacts to disk
     """
-    # 0) Load environment variables from .env
+    # 1) Load environment variables and DB connection
     load_dotenv(paths.ENV_FILE)
-
-    # 1) Load data
     engine = get_engine()
-    df_train = load_training_news(engine=engine)
-    texts = df_train["text"].tolist()
-    news_ids = df_train["id_news"].to_numpy()
-    print(f"Loaded {len(df_train)} training news from the database.")
 
-    # 2) Train model
+    # 2) Load training texts
+    texts = load_training_texts()
+    print(f"Loaded {len(texts)} training texts from news (source='train').")
+
+    # 3) Train topic model
     input_config = TopicModelConfig()
-    output_artifacts: TopicModelArtifacts = train_topic_model(texts, input_config)
-    print(f"Training finished. Silhouette score: {output_artifacts.silhouette:.4f}")
+    output_artifacts: TopicModelArtifacts = train_topic_model(
+        texts=texts.tolist(),
+        config=input_config,
+    )
+    print(f"Model trained. Silhouette score: {output_artifacts.silhouette:.4f}")
 
-    # 3) Generate row for "topics_model_training_runs" db table and insert it
-    df_run = build_topics_model_training_run_row(input_config, output_artifacts)
-    id_run = insert_topics_model_training_run_into_db(df_run, engine=engine)
-    print(f"Created topics_model_training_runs row with id_run={id_run}")
+    # 4) Insert training run metadata into "topics_model_training_runs" table
+    df_run = build_topics_model_training_run_df(input_config, output_artifacts)
+    id_run = insert_topics_model_training_run_df(df_run, engine=engine)
+    print(f"Inserted topics_model_training_run with id_run={id_run}")
 
-    # 4) Compute top terms per topic and generate topic names with LLM
+    # 5) Build and insert topics and terms_per_topic
+
+    # 5.1) Compute top terms per topic (using your existing logic)
     top_terms_per_topic = compute_top_terms_per_topic(input_config, output_artifacts)
+
+    # 5.2) Generate topic names with LLM
     topic_names = generate_topic_names_with_llm(top_terms_per_topic)
-    print("Generated topic names using LLM.")
 
-    # 5) Build dataframes for "topics", "terms_per_topic" and "topics_per_news tables"
-    df_topics = build_topics_dataframe(id_run, output_artifacts.cluster_labels, topic_names)
-    df_terms_per_topic = build_terms_per_topic_dataframe(id_run, top_terms_per_topic)
-    df_topics_per_news = build_topics_per_news_dataframe(id_run, news_ids, output_artifacts.cluster_labels)
+    # 5.3) Build dataframe for "topics" table
+    df_topics = build_topics_df(
+        id_run=id_run,
+        topic_names=topic_names,
+        artifacts=output_artifacts,
+    )
 
-    # 6) Save tables into the database
-    save_topics_dataframe(df_topics, engine=engine)
-    save_terms_per_topic_dataframe(df_terms_per_topic, engine=engine)
-    save_topics_per_news_dataframe(df_topics_per_news, engine=engine)
+    # 5.4) Build dataframe for "terms_per_topic" table
+    df_terms_per_topic = build_terms_per_topic_df(
+        id_run=id_run,
+        top_terms_per_topic=top_terms_per_topic,
+    )
 
-    # 7) Save model artifacts to disk
+    # 5.5) Insert tables into the database
+    insert_topics_df(df_topics, engine=engine)
+    insert_terms_per_topic_df(df_terms_per_topic, engine=engine)
+
+    # 6) Save model artifacts to disk (pipeline + components)
     save_topic_model_artifacts(id_run, output_artifacts)
 
-    print("Topics detector training pipeline completed successfully.")
+    print("Topics detector training pipeline (train only) completed successfully.")
 
 
 if __name__ == "__main__":
