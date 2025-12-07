@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Iterable
 
 import pandas as pd
 from sqlalchemy import text
@@ -74,6 +74,9 @@ def load_news_without_topics_for_run(id_run: int) -> pd.DataFrame:
     """
     engine = get_engine()
 
+    # For those news that still have not been included in topics_per_news,
+    # the left join will yield NULLs in the columns from topics_per_news.
+    # Those NULLs rows are the ones we want to select.
     query = """
         SELECT n.id_news, n.text
         FROM news AS n
