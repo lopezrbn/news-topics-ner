@@ -24,8 +24,8 @@ DIR_DATA_PROCESSED = DIR_DATA / "processed"
 
 # Data file paths
 DATA_COMPRESSED = DIR_DATA_COMPRESSED / "data.zip"
-DF_TRAIN = DIR_DATA_RAW / "train.tsv"
-DF_TEST = DIR_DATA_RAW / "test.tsv"
+DF_TRAIN_RAW = DIR_DATA_RAW / "train.tsv"
+DF_TEST_RAW = DIR_DATA_RAW / "test.tsv"
 DF_TRAIN_CLEAN = DIR_DATA_PROCESSED / "df_train_clean.parquet"
 DF_TEST_CLEAN = DIR_DATA_PROCESSED / "df_test_clean.parquet"
 
