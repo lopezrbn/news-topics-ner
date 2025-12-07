@@ -45,7 +45,9 @@ def run_ner_inference_job(
     print(f"Loaded {len(df_news)} news to process for NER.")
 
     # 2) Load spaCy model
-    ner_config = NerModelConfig()
+    ner_config = NerModelConfig(
+        entity_types_to_keep=["PERSON", "ORG", "GPE", "LOC"]
+    )
     nlp = load_spacy_model(ner_config)
     print(f"Loaded spaCy model '{ner_config.spacy_model_name}'")
 
