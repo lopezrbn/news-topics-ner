@@ -92,7 +92,7 @@ def parse_sources_arg(sources: str) -> Optional[List[str]]:
     return parts
 
 
-def run_topics_inference_job(
+def run_topics_detector_inference_job(
     id_run: int,
     sources: Optional[Iterable[str]],
     mode: str,
@@ -171,7 +171,7 @@ def main() -> None:
     else:
         print(f"Using provided run id_run={run_id}.")
 
-    run_topics_inference_job(
+    run_topics_detector_inference_job(
         id_run=run_id,
         sources=sources,
         mode=mode,
