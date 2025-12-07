@@ -85,14 +85,14 @@ def main() -> None:
 
     # Load train split
     load_data_into_news_table(
-        path_tsv=paths.DF_TRAIN_RAW,
+        path=paths.DF_TRAIN_RAW,
         source="train",
         data_sep="\t",
     )
 
     # Load test split
     load_data_into_news_table(
-        path_tsv=paths.DF_TEST_RAW,
+        path=paths.DF_TEST_RAW,
         source="test",
         data_sep="\t",
     )
