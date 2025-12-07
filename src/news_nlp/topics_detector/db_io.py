@@ -7,37 +7,9 @@ from sqlalchemy.engine import Engine
 from news_nlp.db.connection import get_engine
 
 
-def get_active_run_id(engine: Engine | None = None) -> int:
-    """
-    Return the id_run of the active model in the "topics_model_training_run" table.
-
-    If no active run is found, raises a ValueError.
-
-    The active run is defined as the row in topics_model_training_runs
-    with is_active = true. The partial unique index on is_active=true
-    should guarantee at most one such row.
-    """
-    if engine is None:
-        engine = get_engine()
-
-    sql = text(
-        """
-        SELECT id_run
-        FROM topics_model_training_runs
-        WHERE is_active = true
-        ORDER BY created_at DESC
-        LIMIT 1
-        """
-    )
-
-    with engine.connect() as conn:
-        result = conn.execute(sql).scalar()
-
-    if result is None:
-        raise ValueError("No active topics_model_training_runs found (is_active = true).")
-
-    return int(result)
-
+# ---------------------------------------------------------------------------------
+# Functions to be used in news_nlp/pipelines/02_topics_detector_train.py          #
+# ---------------------------------------------------------------------------------
 
 def load_training_texts() -> pd.Series:
     """
@@ -62,33 +34,6 @@ def load_training_texts() -> pd.Series:
         raise ValueError("No training texts found in news (source='train').")
 
     return df["text"]
-
-
-def load_news_without_topics_for_run(id_run: int) -> pd.DataFrame:
-    """
-    Load news that do not yet have a topic assigned for the given run.
-
-    Returns a dataframe with columns:
-      - id_news
-      - text
-    """
-    engine = get_engine()
-
-    # For those news that still have not been included in topics_per_news,
-    # the left join will yield NULLs in the columns from topics_per_news.
-    # Those NULLs rows are the ones we want to select.
-    query = """
-        SELECT n.id_news, n.text
-        FROM news AS n
-        LEFT JOIN topics_per_news AS t
-          ON n.id_news = t.id_news
-         AND t.id_run = %(id_run)s
-        WHERE t.id_news IS NULL
-          AND n.text IS NOT NULL
-    """
-
-    df = pd.read_sql(query, con=engine, params={"id_run": id_run})
-    return df
 
 
 def insert_topics_model_training_run_df(
@@ -232,35 +177,41 @@ def insert_terms_per_topic_df(
     print(f"Inserted {len(df_terms_per_topic)} rows into 'terms_per_topic'.")
 
 
-def insert_topics_per_news_df(
-    df_topics_per_news: pd.DataFrame,
-    engine: Optional[Engine] = None,
-) -> None:
-    """
-    Insert rows into topics_per_news table using pandas.to_sql.
 
-    df_topics_per_news must have columns:
-      - id_news
-      - id_run
-      - id_topic
+# -----------------------------------------------------------------------------
+# Functions to be used in news_nlp/pipelines/03_topics_detector_inference.py  #
+# -----------------------------------------------------------------------------
+
+def get_active_run_id(engine: Engine | None = None) -> int:
+    """
+    Return the id_run of the active model in the "topics_model_training_run" table.
+
+    If no active run is found, raises a ValueError.
+
+    The active run is defined as the row in topics_model_training_runs
+    with is_active = true. The partial unique index on is_active=true
+    should guarantee at most one such row.
     """
     if engine is None:
         engine = get_engine()
 
-    if df_topics_per_news.empty:
-        print("No topics_per_news rows to insert.")
-        return
-
-    df_topics_per_news.to_sql(
-        "topics_per_news",
-        con=engine,
-        if_exists="append",
-        index=False,
-        chunksize=1_000,
-        method="multi",
+    sql = text(
+        """
+        SELECT id_run
+        FROM topics_model_training_runs
+        WHERE is_active = true
+        ORDER BY created_at DESC
+        LIMIT 1
+        """
     )
 
-    print(f"Inserted {len(df_topics_per_news)} rows into 'topics_per_news'.")
+    with engine.connect() as conn:
+        result = conn.execute(sql).scalar()
+
+    if result is None:
+        raise ValueError("No active topics_model_training_runs found (is_active = true).")
+
+    return int(result)
 
 
 def delete_existing_assignments(
@@ -379,3 +330,63 @@ def load_news_to_process(
 
     df = pd.read_sql(base_query, con=engine, params=params)
     return df
+
+
+# def load_news_without_topics_for_run(id_run: int) -> pd.DataFrame:
+#     """
+#     Load news that do not yet have a topic assigned for the given run.
+
+#     Returns a dataframe with columns:
+#       - id_news
+#       - text
+#     """
+#     engine = get_engine()
+
+#     # For those news that still have not been included in topics_per_news,
+#     # the left join will yield NULLs in the columns from topics_per_news.
+#     # Those NULLs rows are the ones we want to select.
+#     query = """
+#         SELECT n.id_news, n.text
+#         FROM news AS n
+#         LEFT JOIN topics_per_news AS t
+#           ON n.id_news = t.id_news
+#          AND t.id_run = %(id_run)s
+#         WHERE t.id_news IS NULL
+#           AND n.text IS NOT NULL
+#     """
+
+#     df = pd.read_sql(query, con=engine, params={"id_run": id_run})
+#     return df
+
+
+def insert_topics_per_news_df(
+    df_topics_per_news: pd.DataFrame,
+    engine: Optional[Engine] = None,
+) -> None:
+    """
+    Insert rows into topics_per_news table using pandas.to_sql.
+
+    df_topics_per_news must have columns:
+      - id_news
+      - id_run
+      - id_topic
+    """
+    if engine is None:
+        engine = get_engine()
+
+    if df_topics_per_news.empty:
+        print("No topics_per_news rows to insert.")
+        return
+
+    df_topics_per_news.to_sql(
+        "topics_per_news",
+        con=engine,
+        if_exists="append",
+        index=False,
+        chunksize=1_000,
+        method="multi",
+    )
+
+    print(f"Inserted {len(df_topics_per_news)} rows into 'topics_per_news'.")
+
+
