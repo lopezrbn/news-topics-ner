@@ -5,7 +5,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 
 from news_nlp.config import paths
-from news_nlp.ner_extractor.pipeline_jobs import run_ner_inference_job
+from news_nlp.ner_extractor.pipeline_jobs import run_ner_extractor_inference_job
 
 
 def parse_args() -> argparse.Namespace:
@@ -83,7 +83,7 @@ def main() -> None:
     print(f"Mode: {mode} (only 'incremental' is implemented for NER).")
 
     # 3) Run NER inference job
-    run_ner_inference_job(sources=sources)
+    run_ner_extractor_inference_job(sources=sources)
 
 
 if __name__ == "__main__":

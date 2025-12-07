@@ -20,7 +20,7 @@ from news_nlp.ner_extractor.tables import (
 )
 
 
-def run_ner_inference_job(
+def run_ner_extractor_inference_job(
     sources: Optional[List[str]],
 ) -> None:
     """
