@@ -82,7 +82,7 @@ def load_news_to_process(
     conditions.append("e.id_news IS NULL")
 
     if conditions:
-        base_query += " WHERE " + " AND ".join(conditions)
+        base_query += text(" WHERE " + " AND ".join(conditions))
 
     df = pd.read_sql(base_query, con=engine, params=params)
     return df
