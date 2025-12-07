@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "news-nlp"
+version = "0.1.0"
+description = "News Topics and Named Entity Recognition"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]

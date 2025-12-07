@@ -7,19 +7,12 @@ configured database. The schema file is written to be idempotent
 to run this script multiple times.
 """
 
-from pathlib import Path
-import sys
-BASE_DIR = str(Path(__file__).resolve().parents[1])
-if BASE_DIR not in sys.path:
-    print(f"Adding {BASE_DIR} to sys.path")
-    sys.path.insert(0, BASE_DIR)
-
 from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-import config.paths as paths
-from db.connection import get_engine
+import news_nlp.config.paths as paths
+from news_nlp.db.connection import get_engine
 
 
 def read_schema_sql() -> str:

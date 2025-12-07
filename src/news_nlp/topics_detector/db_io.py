@@ -1,17 +1,10 @@
-from pathlib import Path
-import sys
-BASE_DIR = str(Path(__file__).resolve().parents[1])
-if BASE_DIR not in sys.path:
-    print(f"Adding {BASE_DIR} to sys.path")
-    sys.path.insert(0, BASE_DIR)
-
 from typing import Optional
 
 import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from db.connection import get_engine
+from news_nlp.db.connection import get_engine
 
 
 def insert_topics_model_training_run_into_db(

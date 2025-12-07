@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-import sys
-BASE_DIR = str(Path(__file__).resolve().parents[2])
-if BASE_DIR not in sys.path:
-    print(f"Adding {BASE_DIR} to sys.path")
-    sys.path.insert(0, BASE_DIR)
-
 from dotenv import load_dotenv
 
 from news_nlp.config import paths

@@ -1,9 +1,4 @@
-from pathlib import Path
-import sys
-BASE_DIR = str(Path(__file__).resolve().parents[1])
-if BASE_DIR not in sys.path:
-    print(f"Adding {BASE_DIR} to sys.path")
-    sys.path.insert(0, BASE_DIR)
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Literal
@@ -16,9 +11,10 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
+from sklearn.pipeline import Pipeline
 
-from db.connection import get_engine
-from config import paths
+from news_nlp.db.connection import get_engine
+from news_nlp.config import paths
 
 
 @dataclass
@@ -49,6 +45,7 @@ class TopicModelArtifacts:
     """
     Trained artifacts and intermediate results produced by the topics detector.
     """
+    pipeline: Pipeline
     vectorizer: TfidfVectorizer
     svd: TruncatedSVD
     kmeans: KMeans
@@ -83,51 +80,107 @@ def load_training_news(engine: Engine | None = None) -> pd.DataFrame:
     return df
 
 
+def load_topic_pipeline(id_run: int) -> Pipeline:
+    """
+    Load the fitted sklearn Pipeline (TF-IDF + SVD + KMeans) for the given run.
+    """
+    run_dir = paths.DIR_MODELS_TOPIC / f"run_{id_run}"
+    pipeline_path = run_dir / "topic_pipeline.joblib"
+
+    if not pipeline_path.exists():
+        raise FileNotFoundError(
+            f"Pipeline file not found at {pipeline_path}. "
+            "Make sure you have saved it in the training step."
+        )
+
+    pipeline: Pipeline = joblib.load(pipeline_path)
+    return pipeline
+
+
+
 def train_topic_model(
     texts: List[str],
     config: TopicModelConfig,
 ) -> TopicModelArtifacts:
     """
-    Train TF-IDF + TruncatedSVD + KMeans on the given texts.
+    Train the topics detector model.
+
+    This function:
+      - builds a TF-IDF + SVD + KMeans pipeline,
+      - fits the pipeline on the given texts,
+      - computes intermediate matrices and the silhouette score,
+      - returns all artifacts in a TopicModelArtifacts instance.
+
+    Parameters
+    ----------
+    texts : list of str
+        Clean texts (already preprocessed) to cluster.
+    config : TopicModelConfig
+        Hyperparameters for the model.
+
+    Returns
+    -------
+    artifacts : TopicModelArtifacts
     """
-    # TF-IDF
+    # 1) Build components
     vectorizer = TfidfVectorizer(
         max_features=config.tfidf_max_features,
         max_df=config.tfidf_max_df,
         min_df=config.tfidf_min_df,
         ngram_range=config.tfidf_ngram_range,
         stop_words=config.tfidf_stop_words,
-        
     )
-    X_tfidf = vectorizer.fit_transform(texts)
 
-    # SVD (dimensionality reduction)
     svd = TruncatedSVD(
         n_components=config.svd_n_components,
         random_state=config.random_state,
     )
-    X_reduced = svd.fit_transform(X_tfidf)
 
-    # K-Means
     kmeans = KMeans(
         n_clusters=config.kmeans_n_clusters,
         n_init=config.kmeans_n_init,
         random_state=config.random_state,
     )
-    cluster_labels = kmeans.fit_predict(X_reduced)      # 0 to n_clusters-1
 
-    # Silhouette score (simple quality metric)
-    silhouette = silhouette_score(X_reduced, cluster_labels)
+    # 2) Build sklearn Pipeline (without text cleaning: texts must be already clean)
+    pipeline = Pipeline(
+        steps=[
+            ("tfidf", vectorizer),
+            ("svd", svd),
+            ("kmeans", kmeans),
+        ]
+    )
 
-    return TopicModelArtifacts(
-        vectorizer=vectorizer,
-        svd=svd,
-        kmeans=kmeans,
+    # 3) Fit pipeline on the input texts
+    pipeline.fit(texts)
+
+    # 4) Retrieve fitted components from the pipeline
+    fitted_vectorizer: TfidfVectorizer = pipeline.named_steps["tfidf"]
+    fitted_svd: TruncatedSVD = pipeline.named_steps["svd"]
+    fitted_kmeans: KMeans = pipeline.named_steps["kmeans"]
+
+    # 5) Compute intermediate matrices for inspection / metrics
+    X_tfidf = fitted_vectorizer.transform(texts)
+    X_reduced = fitted_svd.transform(X_tfidf)
+    cluster_labels = fitted_kmeans.labels_
+
+    if len(np.unique(cluster_labels)) > 1:
+        silhouette = float(silhouette_score(X_reduced, cluster_labels))
+    else:
+        silhouette = -1.0
+
+    artifacts = TopicModelArtifacts(
+        pipeline=pipeline,
+        vectorizer=fitted_vectorizer,
+        svd=fitted_svd,
+        kmeans=fitted_kmeans,
         X_tfidf=X_tfidf,
         X_reduced=X_reduced,
         cluster_labels=cluster_labels,
-        silhouette=float(silhouette),
+        silhouette=silhouette,
     )
+
+    return artifacts
 
 
 def compute_top_terms_per_topic(
@@ -180,11 +233,17 @@ def save_topic_model_artifacts(
     """
     Save model artifacts (vectorizer, SVD, KMeans) under a directory for this run.
     """
+    
+    # Create run directory
     run_dir = paths.DIR_MODELS_TOPICS / f"run_{str(id_run).zfill(2)}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    # Save individual components
     joblib.dump(artifacts.vectorizer, run_dir / "tfidf_vectorizer.joblib")
     joblib.dump(artifacts.svd, run_dir / "svd.joblib")
     joblib.dump(artifacts.kmeans, run_dir / "kmeans.joblib")
+
+    # Save the full sklearn Pipeline
+    joblib.dump(artifacts.pipeline, run_dir / "topic_pipeline.joblib")
 
     print(f"Saved topic model artifacts to {run_dir}")

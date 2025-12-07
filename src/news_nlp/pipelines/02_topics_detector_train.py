@@ -1,15 +1,8 @@
-from pathlib import Path
-import sys
-BASE_DIR = str(Path(__file__).resolve().parents[1])
-if BASE_DIR not in sys.path:
-    print(f"Adding {BASE_DIR} to sys.path")
-    sys.path.insert(0, BASE_DIR)
-
 from dotenv import load_dotenv
 
-from config import paths
-from db.connection import get_engine
-from topics_detector.model import (
+from news_nlp.config import paths
+from news_nlp.db.connection import get_engine
+from news_nlp.topics_detector.model import (
     TopicModelConfig,
     TopicModelArtifacts,
     load_training_news,
@@ -17,19 +10,19 @@ from topics_detector.model import (
     compute_top_terms_per_topic,
     save_topic_model_artifacts,
 )
-from topics_detector.tables import (
+from news_nlp.topics_detector.tables import (
     build_topics_model_training_run_row,
     build_topics_dataframe,
     build_terms_per_topic_dataframe,
     build_topics_per_news_dataframe,
 )
-from topics_detector.db_io import (
+from news_nlp.topics_detector.db_io import (
     insert_topics_model_training_run_into_db,
     save_topics_dataframe,
     save_terms_per_topic_dataframe,
     save_topics_per_news_dataframe,
 )
-from topics_detector.naming import generate_topic_names_with_llm
+from news_nlp.topics_detector.naming import generate_topic_names_with_llm
 
 
 def main() -> None:

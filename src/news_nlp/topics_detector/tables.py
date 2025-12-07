@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
-from .model import TopicModelConfig, TopicModelArtifacts
+from news_nlp.topics_detector.model import TopicModelConfig, TopicModelArtifacts
 
 
 def build_topics_model_training_run_row(
