@@ -64,12 +64,12 @@ def load_news_to_process(
     """
     engine = get_engine()
 
-    base_query = text("""
+    base_query = """
         SELECT n.id_news, n.text
         FROM news AS n
         LEFT JOIN entities_per_news AS e
           ON n.id_news = e.id_news
-    """)
+    """
 
     conditions = []
     params: Dict[str, Any] = {}
@@ -82,7 +82,10 @@ def load_news_to_process(
     conditions.append("e.id_news IS NULL")
 
     if conditions:
-        base_query += text(" WHERE " + " AND ".join(conditions))
+        base_query += " WHERE " + " AND ".join(conditions)
+
+    # Convert to SQLAlchemy text query
+    base_query = text(base_query)
 
     df = pd.read_sql(base_query, con=engine, params=params)
     return df
