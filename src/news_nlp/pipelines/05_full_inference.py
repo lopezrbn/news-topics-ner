@@ -145,7 +145,7 @@ def main() -> None:
     # 3) Run full inference job
     run_full_inference_job(
         sources=sources,
-        topics_mode=topics_detector_mode,
+        topics_detector_mode=topics_detector_mode,
         run_id=run_id,
     )
 
