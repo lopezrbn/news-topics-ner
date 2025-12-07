@@ -258,3 +258,121 @@ def insert_topics_per_news_df(
     )
 
     print(f"Inserted {len(df_topics_per_news)} rows into 'topics_per_news'.")
+
+
+def delete_existing_assignments(
+    id_run: int,
+    sources: Optional[Iterable[str]],
+) -> int:
+    """
+    Delete existing rows in topics_per_news for a given run and optional sources.
+
+    Parameters
+    ----------
+    id_run : int
+        Run identifier in topics_model_training_runs.
+    sources : iterable of str or None
+        If provided, only rows whose news.source is in this list are deleted.
+        If None, rows for all sources are deleted for this run.
+
+    Returns
+    -------
+    deleted_count : int
+        Number of deleted rows (as reported by the DB).
+    """
+    engine = get_engine()
+
+    if sources is None:
+        # Delete all assignments for this run_id
+        sql = text(
+            """
+            DELETE FROM topics_per_news
+            WHERE id_run = :id_run
+            """
+        )
+        params = {"id_run": id_run}
+    else:
+        # Delete assignments only for news in the specified sources
+        sql = text(
+            """
+            DELETE FROM topics_per_news
+            WHERE id_run = :id_run
+                AND id_news IN (
+                    SELECT id_news
+                    FROM news
+                    WHERE source = ANY(:sources)
+                )
+            """
+        )
+        params = {"id_run": id_run, "sources": list(sources)}
+
+    with engine.begin() as conn:
+        result = conn.execute(sql, params)
+        deleted_count = result.rowcount if result.rowcount is not None else -1
+
+    return deleted_count
+
+
+def load_news_to_process(
+    id_run: int,
+    sources: Optional[Iterable[str]],
+    mode: str,
+) -> pd.DataFrame:
+    """
+    Load news that should be processed for topics inference.
+
+    Parameters
+    ----------
+    id_run : int
+        Run identifier in topics_model_training_runs.
+    sources : iterable of str or None
+        If provided, only news with these sources are considered.
+        If None, all sources are included.
+    mode : {"incremental", "overwrite"}
+        - "incremental": only news that do not yet have a row in topics_per_news
+          for this run are loaded.
+        - "overwrite": all news matching the sources are loaded, assuming any
+          previous assignments have already been deleted.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        DataFrame with columns:
+          - id_news
+          - text
+    """
+    engine = get_engine()
+
+    if mode not in ("incremental", "overwrite"):
+        raise ValueError(f"Invalid mode: {mode}. Use 'incremental' or 'overwrite'.")
+
+    # Base query: select news + left join with topics_per_news for this run
+    # We will filter by source if needed, and by whether topics_per_news exists.
+    base_query = """
+        SELECT n.id_news, n.text
+        FROM news AS n
+        LEFT JOIN topics_per_news AS t
+            ON n.id_news = t.id_news
+            AND t.id_run = :id_run
+    """
+
+    conditions = []
+    params: dict = {"id_run": id_run}
+
+    if sources is not None:
+        conditions.append("n.source = ANY(:sources)")
+        params["sources"] = list(sources)
+
+    if mode == "incremental":
+        # Only news without topics_per_news row for this run
+        conditions.append("t.id_news IS NULL")
+    else:
+        # overwrite: assume we have already deleted rows for this run & sources
+        # -> all news matching this source filter are candidates
+        pass
+
+    if conditions:
+        base_query += " WHERE " + " AND ".join(conditions)
+
+    df = pd.read_sql(base_query, con=engine, params=params)
+    return df
