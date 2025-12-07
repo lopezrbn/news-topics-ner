@@ -302,13 +302,13 @@ def load_news_to_process(
 
     # Base query: select news + left join with topics_per_news for this run
     # We will filter by source if needed, and by whether topics_per_news exists.
-    base_query = text("""
+    base_query = """
         SELECT n.id_news, n.text
         FROM news AS n
         LEFT JOIN topics_per_news AS t
             ON n.id_news = t.id_news
             AND t.id_run = :id_run
-    """)
+    """
 
     conditions = []
     params: dict = {"id_run": id_run}
@@ -327,6 +327,9 @@ def load_news_to_process(
 
     if conditions:
         base_query += " WHERE " + " AND ".join(conditions)
+
+    # Convert to SQLAlchemy text query
+    base_query = text(base_query)
 
     df = pd.read_sql(base_query, con=engine, params=params)
     return df
