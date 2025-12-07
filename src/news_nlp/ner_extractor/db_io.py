@@ -1,11 +1,90 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any, Iterable
 
 import pandas as pd
 from sqlalchemy.engine import Engine
 
 from news_nlp.db.connection import get_engine
+
+
+# def load_news_for_ner(
+#     engine: Optional[Engine] = None,
+# ) -> pd.DataFrame:
+#     """
+#     Load news from the database to run NER on.
+
+#     As the model is pretrained, we don't need train/test split here, so we just
+#     load all news with non-null text.
+
+#     Returns
+#     -------
+#     df_news : DataFrame
+#         Dataframe with columns:
+#           - id_news
+#           - text
+#     """
+#     if engine is None:
+#         engine = get_engine()
+
+#     query = """
+#         SELECT id_news, text
+#         FROM news
+#         WHERE text IS NOT NULL
+#     """
+
+#     df_news = pd.read_sql(query, con=engine)
+#     if df_news.empty:
+#         raise ValueError("No news found in the database (text IS NOT NULL).")
+
+#     return df_news
+def load_news_to_process(
+    sources: Optional[Iterable[str]],
+) -> pd.DataFrame:
+    """
+    Load news that should be processed for NER.
+
+    We consider that a news item needs NER processing if it has no rows
+    in entities_per_news yet.
+
+    Parameters
+    ----------
+    sources : iterable of str or None
+        If provided, only news with these sources are considered
+        (e.g. 'train', 'test', 'prod').
+        If None, all sources are included.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        DataFrame with columns:
+          - id_news
+          - text
+    """
+    engine = get_engine()
+
+    base_query = """
+        SELECT n.id_news, n.text
+        FROM news AS n
+        LEFT JOIN entities_per_news AS e
+          ON n.id_news = e.id_news
+    """
+
+    conditions = []
+    params: Dict[str, Any] = {}
+
+    if sources is not None:
+        conditions.append("n.source = ANY(:sources)")
+        params["sources"] = list(sources)
+
+    # Only news without entities_per_news rows
+    conditions.append("e.id_news IS NULL")
+
+    if conditions:
+        base_query += " WHERE " + " AND ".join(conditions)
+
+    df = pd.read_sql(base_query, con=engine, params=params)
+    return df
 
 
 def insert_entities(
@@ -68,7 +147,7 @@ def get_entity_mapping(
     return mapping
 
 
-def save_entities_per_news_dataframe(
+def save_entities_per_news_df(
     df_entities_per_news: pd.DataFrame,
     engine: Optional[Engine] = None,
 ) -> None:

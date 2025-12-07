@@ -18,7 +18,7 @@ def _normalize_entity_text(text: str) -> str:
     return text.strip().lower()
 
 
-def build_entities_dataframe(
+def build_entities_df(
     df_mentions: pd.DataFrame,
 ) -> pd.DataFrame:
     """
@@ -79,7 +79,7 @@ def build_entities_dataframe(
     return df_entities
 
 
-def build_entities_per_news_dataframe(
+def build_entities_per_news_df(
     df_mentions: pd.DataFrame,
     entity_mapping: Dict[Tuple[str, str], int],
 ) -> pd.DataFrame:
