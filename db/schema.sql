@@ -4,6 +4,7 @@
 
 -- ======================
 -- 1) Table: news
+-- This table is the result of the data ingestion and text cleaning pipeline
 -- ======================
 CREATE TABLE IF NOT EXISTS news (
     id_news      BIGSERIAL PRIMARY KEY,
@@ -21,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_news_source
 -- ======================
 -- 2) Table: topics_model_training_runs
 -- Each row represents one training run of the topics detector
+-- This table is one of the results of the topics_detector_train pipeline, storing the hyperparameters and metrics
 -- ======================
 CREATE TABLE IF NOT EXISTS topics_model_training_runs (
     id_run              BIGSERIAL PRIMARY KEY,
@@ -50,6 +52,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_topics_model_training_runs_is_active
 -- ======================
 -- 3) Table: topics
 -- Each row is a single topic (cluster) for a given run
+-- This table is one of the results of the topics_detector_train pipeline, storing the topics discovered in each run
 -- ======================
 CREATE TABLE IF NOT EXISTS topics (
     id_run      BIGINT NOT NULL
@@ -69,6 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_topics_id_run
 -- ======================
 -- 4) Table: terms_per_topic
 -- Top terms for each topic (cluster) in a given run
+-- This table is one of the results of the topics_detector_train pipeline, storing the most important terms per topic
 -- ======================
 CREATE TABLE IF NOT EXISTS terms_per_topic (
     id_run  BIGINT NOT NULL
@@ -91,6 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_terms_per_topic_id_run
 -- ======================
 -- 5) Table: topics_per_news
 -- Assignment of each news item to a topic (cluster) for a given run
+-- This table is the result of the topics_detector_infer pipeline, storing the topic assignments for each news item
 -- ======================
 CREATE TABLE IF NOT EXISTS topics_per_news (
     id_news  BIGINT NOT NULL
@@ -114,6 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_topics_per_news_id_run
 -- ======================
 -- 6) Table: entities
 -- Global table of unique named entities detected in the corpus
+-- This table is one of the results of the ner_extractor_infer pipeline, storing the unique entities found
 -- ======================
 CREATE TABLE IF NOT EXISTS entities (
     id_entity              BIGSERIAL PRIMARY KEY,
@@ -132,6 +138,7 @@ CREATE INDEX IF NOT EXISTS idx_entities_entity_text_norm
 -- ======================
 -- 7) Table: entities_per_news
 -- Mentions of entities in each news item
+-- This table is one of the results of the ner_extractor_infer pipeline, storing the entities found in each news item
 -- ======================
 CREATE TABLE IF NOT EXISTS entities_per_news (
     id_news               BIGINT NOT NULL
