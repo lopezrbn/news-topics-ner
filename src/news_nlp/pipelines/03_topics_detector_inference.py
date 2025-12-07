@@ -35,7 +35,7 @@ def parse_args() -> argparse.Namespace:
         default="all",
         help=(
             "Comma-separated list of sources to process "
-            "(e.g. 'train', 'train,test', 'prod', 'all'). "
+            "(e.g. 'train', 'train, test', 'prod', 'all'). "
             "Default: 'all'."
         ),
     )
@@ -73,7 +73,7 @@ def parse_sources_arg(sources: str) -> Optional[List[str]]:
     Examples
     --------
     "train"        -> ["train"]
-    "train,test"   -> ["train", "test"]
+    "train, test"   -> ["train", "test"]
     "all"          -> None  (meaning: no filtering by source)
 
     Returns
