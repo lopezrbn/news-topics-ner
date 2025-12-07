@@ -1,46 +1,68 @@
-import news_nlp.config.paths as paths
-from news_nlp.db.connection import get_engine
-
+from pathlib import Path
 from typing import Literal
 
 import pandas as pd
 from dotenv import load_dotenv
 
+from news_nlp.config import paths
+from news_nlp.db.connection import get_engine
+from news_nlp.preprocessing.text_cleaning import clean_text
+
 
 def load_data_into_news_table(
-    path,
-    source: Literal["train", "test"],
+    path: Path,
+    source: Literal["train", "test", "prod"],
+    data_sep: str = "\t",
 ) -> None:
     """
-    Load one news split (train or test) from a parquet file into the `news` table
-    using pandas.to_sql.
+    Load one TSV split (train or test) into the `news` table.
+
+    This function:
+      1) reads the raw TSV file,
+      2) builds the `text` field from title/content,
+      3) cleans the text using `clean_text`,
+      4) inserts rows into the `news` table.
 
     Parameters
     ----------
-    path :
-        Path-like object to the parquet file containing the cleaned news.
-    source : Literal["train", "test"]
-        Value to store in the `source` column (e.g. 'train' or 'test').
+    path_tsv : Path
+        Path to the raw TSV file.
+    source : {"train", "test", "prod"}
+        Value to store in the `source` column of `news`.
     """
+    if not path.exists():
+        raise FileNotFoundError(f"TSV file not found: {path}")
 
-    df = pd.read_parquet(path)
+    print(f"Reading raw TSV from {path} (source='{source}')")
+
+    # Read the raw TSV/CSV file
+    df_raw = pd.read_csv(path, sep=data_sep)
 
     # Basic sanity checks on expected columns
-    required_columns = ["title", "content", "text"]
-    for col in required_columns:
-        if col not in df.columns:
-            raise ValueError(f"Column '{col}' not found in dataframe from {path}")
+    required_cols = ["title", "content"]
+    missing = [c for c in required_cols if c not in df_raw.columns]
+    if missing:
+        raise ValueError(
+            f"Missing required columns in {path}: {missing}. "
+            f"Available columns: {list(df_raw.columns)}"
+        )
 
-    # Add the columns missing in the dataframe but expected by the `news` table
-    df["source"] = source
+    # Build text column
+    df_raw["title"] = df_raw["title"].fillna("")
+    df_raw["content"] = df_raw["content"].fillna("")
+    df_raw["text_raw"] = df_raw["title"] + ". " + df_raw["content"]
 
-    # Keep only the columns expected by the `news` table
-    cols_to_keep = ["source", "title", "content", "text"]
-    df_result = df[cols_to_keep].copy()
+    # Clean text using the shared cleaning function
+    df_raw["text"] = df_raw["text_raw"].apply(clean_text)
+
+    # Build the dataframe aligned with the "news" table schema
+    # "id_news" column is SERIAL in DB, so we do not set it here
+    # "ingested_at" column is set by the DB default (NOW()), so not need either
+    df_news = df_raw[["source", "title", "content", "text"]].copy()
 
     engine = get_engine()
 
-    df_result.to_sql(
+    df_news.to_sql(
         "news",
         con=engine,
         if_exists="append",
@@ -49,28 +71,33 @@ def load_data_into_news_table(
         method="multi",
     )
 
-    print(f"Inserted {len(df_result)} rows from {path} with source='{source}'")
+    print(f"Inserted {len(df_news)} rows from {path} with source='{source}'.")
 
 
 def main() -> None:
     """
-    Entry point to populate the `news` table from processed parquet files.
+    Entry point to populate the `news` table from raw TSV files.
+
+    It loads both train and test splits.
     """
-    # Load environment variables from .env in the project root
-    dotenv_path = paths.ENV_FILE
-    load_dotenv(dotenv_path)
+    # Load environment variables
+    load_dotenv(paths.ENV_FILE)
 
     # Load train split
     load_data_into_news_table(
-        path=paths.DF_TRAIN_CLEAN,
+        path_tsv=paths.DF_TRAIN_RAW,
         source="train",
+        data_sep="\t",
     )
 
     # Load test split
     load_data_into_news_table(
-        path=paths.DF_TEST_CLEAN,
+        path_tsv=paths.DF_TEST_RAW,
         source="test",
+        data_sep="\t",
     )
+
+    print("Initial news loading completed.")
 
 
 if __name__ == "__main__":
