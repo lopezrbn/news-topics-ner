@@ -19,7 +19,7 @@ class NerModelConfig:
     spacy_model_name:
         Name of the spaCy model to use (must be installed, e.g. 'en_core_web_sm').
     entity_types_to_keep:
-        Optional list of entity labels to keep (e.g. ['PERSON', 'ORG', 'GPE']).
+        Optional list of entity labels to keep (e.g. ['PERSON', 'ORG', 'GPE', 'LOC']).
         If None, all entity types returned by the model are kept.
     batch_size:
         Batch size used in spaCy's nlp.pipe for faster processing.
