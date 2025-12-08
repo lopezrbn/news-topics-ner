@@ -43,6 +43,9 @@ def insert_topics_model_training_run_df(
     """
     Insert a single row into topics_model_training_runs table and return the generated id_run.
 
+    Before inserting, it deactivates any currently active run (is_active = TRUE)
+    to ensure the unique constraint on is_active is respected.
+
     df_run must have exactly one row and the columns:
       - id_mlflow_run
       - model_name
@@ -67,7 +70,15 @@ def insert_topics_model_training_run_df(
 
     row = df_run.iloc[0].to_dict()
 
-    query = text(
+    query_set_active_false = text(
+        """
+        UPDATE topics_model_training_runs
+        SET is_active = FALSE
+        WHERE is_active = TRUE
+        """
+    )
+
+    query_insert_run = text(
         """
         INSERT INTO topics_model_training_runs (
             id_mlflow_run,
@@ -106,8 +117,11 @@ def insert_topics_model_training_run_df(
     )
 
     with engine.begin() as conn:
-        result = conn.execute(query, row)
-        id_run = result.scalar_one()
+        # 1) Deactivate any currently active run
+        result_active = conn.execute(query_set_active_false)
+        # 2) Insert the new run as active
+        result_insert = conn.execute(query_insert_run, row)
+        id_run = result_insert.scalar_one()
 
     return int(id_run)
 
