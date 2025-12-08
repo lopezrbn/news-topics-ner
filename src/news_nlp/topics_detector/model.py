@@ -55,7 +55,7 @@ def load_topic_pipeline(id_run: int) -> Pipeline:
     Load the fitted sklearn Pipeline (TF-IDF + SVD + KMeans) for the given run.
     """
     run_dir = paths.DIR_MODELS_TOPICS / f"run_{str(id_run).zfill(2)}"
-    pipeline_path = run_dir / "topic_pipeline.joblib"
+    pipeline_path = run_dir / "topics_detector_pipeline.joblib"
 
     if not pipeline_path.exists():
         raise FileNotFoundError(
