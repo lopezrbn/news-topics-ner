@@ -5,7 +5,7 @@ from typing import Iterable, Optional
 import numpy as np
 
 from news_nlp.db.connection import get_engine
-from news_nlp.topics_detector.model import load_topic_pipeline
+from news_nlp.topics_detector.model import load_topic_detector_pipeline
 from news_nlp.topics_detector.inference import predict_topics_for_texts
 from news_nlp.topics_detector.tables import build_topics_per_news_df
 from news_nlp.topics_detector.db_io import (
@@ -45,7 +45,7 @@ def run_topics_detector_inference_job(
     print(f"Loaded {len(df_news)} news to process.")
 
     # Load the sklearn Pipeline for this run
-    pipeline = load_topic_pipeline(id_run)
+    pipeline = load_topic_detector_pipeline(id_run)
     print("Loaded topic pipeline from disk.")
 
     texts = df_news["text"].tolist()

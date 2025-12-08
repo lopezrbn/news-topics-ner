@@ -50,7 +50,7 @@ class TopicModelArtifacts:
     silhouette: float
 
 
-def load_topic_pipeline(id_run: int) -> Pipeline:
+def load_topic_detector_pipeline(id_run: int) -> Pipeline:
     """
     Load the fitted sklearn Pipeline (TF-IDF + SVD + KMeans) for the given run.
     """
