@@ -214,7 +214,7 @@ def insert_terms_per_topic_df(
 # Functions to be used in news_nlp/pipelines/03_topics_detector_inference.py  #
 # -----------------------------------------------------------------------------
 
-def get_active_run_id(engine: Engine | None = None) -> int:
+def get_active_id_run(engine: Engine | None = None) -> int:
     """
     Return the id_run of the active model in the "topics_model_training_run" table.
 
@@ -244,6 +244,58 @@ def get_active_run_id(engine: Engine | None = None) -> int:
         raise ValueError("No active topics_model_training_runs found (is_active = true).")
 
     return int(result)
+
+
+def get_topics_metadata_dict(
+    engine: Engine | None = None,
+    id_run: Optional[int] = None
+) -> dict[int, dict[str, object]]:
+    """
+    Load topic names and top terms per topic from the database for the given run.
+
+    Returns a mapping:
+        topic_id -> {
+            "topic_name": str | None,
+            "top_terms": List[str]
+        }
+    """
+    if engine is None:
+        engine = get_engine()
+
+    if id_run is None:
+        id_run = get_active_id_run(engine)
+
+    sql_topics = text(
+        """
+        SELECT id_topic, topic_name
+        FROM topics
+        WHERE id_run = :id_run
+        """
+    )
+    sql_terms = text(
+        """
+        SELECT id_topic, rank, term
+        FROM terms_per_topic
+        WHERE id_run = :id_run
+        ORDER BY id_topic, rank
+        """
+    )
+
+    with engine.begin() as conn:
+        rows_topics = conn.execute(sql_topics, {"id_run": id_run}).fetchall()
+        rows_terms = conn.execute(sql_terms, {"id_run": id_run}).fetchall()
+
+    topic_metadata: dict[int, dict[str, object]] = {}
+    for row in rows_topics:
+        topic_metadata[row.id_topic] = {
+            "topic_name": row.topic_name,
+            "top_terms": [],
+        }
+
+    for row in rows_terms:
+        topic_metadata[row.id_topic]["top_terms"].append(row.term)
+
+    return topic_metadata
 
 
 def delete_existing_assignments(

@@ -46,10 +46,9 @@ def predict_topics_for_texts(
 def predict_topic_for_text(
     text: str,
     pipeline: Pipeline,
-    topic_id_to_name: Optional[Dict[int, str]] = None,
     apply_cleaning: bool = True,
     text_cleaner: Callable[[str], str] = clean_text,
-) -> Dict[str, Optional[object]]:
+) -> int:
     """
     Predict the topic for a single text.
 
@@ -59,9 +58,6 @@ def predict_topic_for_text(
         Raw or already-cleaned text.
     pipeline : Pipeline
         Fitted sklearn Pipeline.
-    topic_id_to_name : dict[int, str], optional
-        Optional mapping from topic_id to human-readable topic_name.
-        If provided, the returned dict will include topic_name.
     apply_cleaning : bool, default True
         If True, apply `text_cleaner` before prediction.
     text_cleaner : callable, default clean_text
@@ -69,23 +65,13 @@ def predict_topic_for_text(
 
     Returns
     -------
-    result : dict
-        Keys:
-          - "topic_id": int
-          - "topic_name": Optional[str]
+    id_topic : int
     """
     if apply_cleaning:
         processed = text_cleaner(text)
     else:
         processed = text
 
-    topic_id = int(pipeline.predict([processed])[0])
+    id_topic = int(pipeline.predict([processed])[0])
 
-    topic_name = None
-    if topic_id_to_name is not None:
-        topic_name = topic_id_to_name.get(topic_id)
-
-    return {
-        "topic_id": topic_id,
-        "topic_name": topic_name,
-    }
+    return id_topic

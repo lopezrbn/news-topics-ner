@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import pandas as pd
 import spacy
@@ -137,9 +137,51 @@ def extract_entities_for_news(
                     "id_news": int(id_news),
                     "entity_text": ent.text,
                     "entity_type": ent.label_,
+                    # "start_char": ent.start_char,
+                    # "end_char": ent.end_char,
                 }
             )
 
     df_mentions = pd.DataFrame(rows)
 
     return df_mentions
+
+
+def extract_entities_for_text(
+    text: str,
+    nlp: Language,
+    config: NerModelConfig,
+) -> List[Dict[str, object]]:
+    """
+    Extract named entities from a single text using the provided spaCy model.
+
+    Parameters
+    ----------
+    text : str
+        Input text.
+    nlp : spacy.language.Language
+        Loaded spaCy model.
+    config : NerModelConfig
+        NER configuration.
+
+    Returns
+    -------
+    entities : list of dict
+        Each dict contains 'text', 'label', 'start_char', 'end_char'.
+    """
+    doc = nlp(text)
+    entities: List[Dict[str, object]] = []
+
+    for ent in doc.ents:
+        if config.entity_types_to_keep is not None and ent.label_ not in config.entity_types_to_keep:
+            continue
+        entities.append(
+            {
+                "text": ent.text,
+                "label": ent.label_,
+                "start_char": ent.start_char,
+                "end_char": ent.end_char,
+            }
+        )
+
+    return entities

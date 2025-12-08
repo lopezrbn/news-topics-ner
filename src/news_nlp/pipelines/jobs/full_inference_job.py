@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Iterable, Literal
 
 from news_nlp.db.connection import get_engine
-from news_nlp.topics_detector.db_io import get_active_run_id
+from news_nlp.topics_detector.db_io import get_active_id_run
 from news_nlp.pipelines.jobs.topics_detector_inference_job import run_topics_detector_inference_job
 from news_nlp.pipelines.jobs.ner_extractor_inference_job import run_ner_extractor_inference_job
 
@@ -26,7 +26,7 @@ def run_full_inference_job(
 
     # 1) Resolve run_id for topics
     if id_run is None:
-        id_run = get_active_run_id(engine=engine)
+        id_run = get_active_id_run(engine=engine)
         print(f"No run-id provided. Using active topics run id_run={id_run}.")
     else:
         print(f"Using provided topics run id_run={id_run}.")
