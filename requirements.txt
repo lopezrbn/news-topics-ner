@@ -9,3 +9,4 @@ spacy
 sqlalchemy
 psycopg2-binary
 mlflow
+apache_airflow
