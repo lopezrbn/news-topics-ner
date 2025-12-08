@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from datetime import datetime
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
 
-# Adjust these paths to your server layout if needed
-PROJECT_ROOT = "/home/ubuntu/news-topics-ner"
-VENV_PYTHON = f"{PROJECT_ROOT}/.venv/bin/python"
+DIR_BASE = Path(__file__).parents[1].resolve()
+VENV_PYTHON = DIR_BASE / ".venv/bin/python"
 
 DEFAULT_ARGS = {
     "owner": "airflow",
@@ -31,7 +32,7 @@ with DAG(
     load_initial_news = BashOperator(
         task_id="load_initial_news",
         bash_command=(
-            f"cd {PROJECT_ROOT} && "
+            f"cd {DIR_BASE} && "
             f"{VENV_PYTHON} src/news_nlp/pipelines/01_load_initial_news_pipeline.py"
         ),
     )
@@ -40,7 +41,7 @@ with DAG(
     train_topics_detector = BashOperator(
         task_id="train_topics_detector",
         bash_command=(
-            f"cd {PROJECT_ROOT} && "
+            f"cd {DIR_BASE} && "
             f"{VENV_PYTHON} src/news_nlp/pipelines/02_topics_detector_train_pipeline.py"
         ),
     )
@@ -50,7 +51,7 @@ with DAG(
     full_inference_initial = BashOperator(
         task_id="full_inference_initial",
         bash_command=(
-            f"cd {PROJECT_ROOT} && "
+            f"cd {DIR_BASE} && "
             f"{VENV_PYTHON} src/news_nlp/pipelines/05_full_inference_pipeline.py "
             f"--mode-topics-detector overwrite --mode-ner-extractor incremental --sources train,test"
         ),

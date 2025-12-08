@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from pathlib import Path
+
+from datetime import datetime
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
 
-PROJECT_ROOT = "/home/ubuntu/news-topics-ner"
-VENV_PYTHON = f"{PROJECT_ROOT}/.venv/bin/python"
+DIR_BASE = Path(__file__).parents[1].resolve()
+VENV_PYTHON = DIR_BASE / ".venv/bin/python"
 
 DEFAULT_ARGS = {
     "owner": "airflow",
@@ -30,8 +32,8 @@ with DAG(
     full_inference_incremental = BashOperator(
         task_id="full_inference_incremental",
         bash_command=(
-            f"cd {PROJECT_ROOT} && "
+            f"cd {DIR_BASE} && "
             f"{VENV_PYTHON} src/news_nlp/pipelines/05_full_inference_pipeline.py "
-            f"--mode-topics-detector incremental --mode-ner-extractor incremental --sources all --id-run 3"
+            f"--mode-topics-detector incremental --mode-ner-extractor incremental --sources prod"
         ),
     )
