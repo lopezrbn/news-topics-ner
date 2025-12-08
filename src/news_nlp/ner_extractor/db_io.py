@@ -9,36 +9,6 @@ from sqlalchemy.engine import Engine
 from news_nlp.db.connection import get_engine
 
 
-# def load_news_for_ner(
-#     engine: Optional[Engine] = None,
-# ) -> pd.DataFrame:
-#     """
-#     Load news from the database to run NER on.
-
-#     As the model is pretrained, we don't need train/test split here, so we just
-#     load all news with non-null text.
-
-#     Returns
-#     -------
-#     df_news : DataFrame
-#         Dataframe with columns:
-#           - id_news
-#           - text
-#     """
-#     if engine is None:
-#         engine = get_engine()
-
-#     query = """
-#         SELECT id_news, text
-#         FROM news
-#         WHERE text IS NOT NULL
-#     """
-
-#     df_news = pd.read_sql(query, con=engine)
-#     if df_news.empty:
-#         raise ValueError("No news found in the database (text IS NOT NULL).")
-
-#     return df_news
 def load_news_to_process(
     sources: Optional[Iterable[str]],
 ) -> pd.DataFrame:
