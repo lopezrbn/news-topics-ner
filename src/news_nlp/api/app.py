@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 
 from news_nlp.api.schemas import (
     TextInput,
@@ -25,6 +26,14 @@ app = FastAPI(
     ),
     version="1.0.0",
 )
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """
+    Redirect root path to the interactive API docs.
+    """
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health", response_model=HealthResponse)
