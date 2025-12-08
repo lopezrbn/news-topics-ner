@@ -1,0 +1,28 @@
+[Unit]
+Description=news-topics-ner FastAPI service
+After=network.target
+
+[Service]
+# User and group of the machine to run the service
+User=ubuntu
+Group=ubuntu
+
+# Project directory
+WorkingDirectory=/home/ubuntu/news-topics-ner
+
+# Activate virtual environment and start the FastAPI app with Uvicorn
+ExecStart=/home/ubuntu/news-topics-ner/.venv/bin/uvicorn news_nlp.api.app:app \
+    --host 0.0.0.0 \
+    --port 8004 \
+    --workers 2 \
+    --proxy-headers
+
+# Restart the service on failure
+Restart=always
+RestartSec=5
+
+# Environment variables
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
