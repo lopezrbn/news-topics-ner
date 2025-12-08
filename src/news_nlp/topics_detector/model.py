@@ -198,21 +198,31 @@ def compute_top_terms_per_topic(
 def save_topic_model_artifacts(
     id_run: int,
     artifacts: TopicModelArtifacts,
-) -> None:
+) -> Dict[str, paths.Path]:
     """
     Save model artifacts (pipeline, vectorizer, SVD, KMeans) under a directory for this run.
     """
     
     # Create run directory
-    run_dir = paths.DIR_MODELS_TOPICS / f"run_{str(id_run).zfill(2)}"
-    run_dir.mkdir(parents=True, exist_ok=True)
+    dir_run = paths.DIR_MODELS_TOPICS / f"run_{str(id_run).zfill(2)}"
+    dir_run.mkdir(parents=True, exist_ok=True)
+
+    # 
+    artifact_paths = {
+        "tfidf_vectorizer": dir_run / "tfidf_vectorizer.joblib",
+        "svd": dir_run / "svd.joblib",
+        "kmeans": dir_run / "kmeans.joblib",
+        "topics_detector_pipeline": dir_run / "topics_detector_pipeline.joblib",
+    }
 
     # Save individual components
-    joblib.dump(artifacts.vectorizer, run_dir / "tfidf_vectorizer.joblib")
-    joblib.dump(artifacts.svd, run_dir / "svd.joblib")
-    joblib.dump(artifacts.kmeans, run_dir / "kmeans.joblib")
+    joblib.dump(artifacts.vectorizer, artifact_paths["tfidf_vectorizer"])
+    joblib.dump(artifacts.svd, artifact_paths["svd"])
+    joblib.dump(artifacts.kmeans, artifact_paths["kmeans"])
 
     # Save the full sklearn Pipeline
-    joblib.dump(artifacts.pipeline, run_dir / "topic_pipeline.joblib")
+    joblib.dump(artifacts.pipeline, artifact_paths["topics_detector_pipeline"])
 
-    print(f"Saved topic model artifacts to {run_dir}")
+    print(f"Saved topic model artifacts to {dir_run}")
+
+    return artifact_paths

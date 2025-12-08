@@ -8,3 +8,4 @@ matplotlib
 spacy
 sqlalchemy
 psycopg2-binary
+mlflow
