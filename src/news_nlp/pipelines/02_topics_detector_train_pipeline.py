@@ -25,6 +25,7 @@ from news_nlp.topics_detector.db_io import (
     insert_topics_model_training_run_df,
     insert_topics_df,
     insert_terms_per_topic_df,
+    set_topics_model_training_run_active,
 )
 from news_nlp.topics_detector.topics_naming import (
     generate_topic_names_with_llm
@@ -145,6 +146,9 @@ def main() -> None:
         for _, artifact_path in artifact_paths.items():
             if artifact_path.exists():
                 mlflow.log_artifact(str(artifact_path), artifact_path=="topics_detector_model")
+
+        # 4.6) After everything succeded, mark the run as active
+        set_topics_model_training_run_active(id_run, engine)
 
     print("Topics detector training pipeline (train only) completed successfully.")
 

@@ -30,7 +30,7 @@ def build_topics_model_training_run_df(
         "top_terms_per_topic": [config.top_terms_per_topic],
         "random_state": [config.random_state],
         "silhouette": [artifacts.silhouette],
-        "is_active": [True],
+        "is_active": [False],
     }
     return pd.DataFrame(data)
 
