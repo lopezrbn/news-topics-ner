@@ -144,7 +144,7 @@ def main() -> None:
         artifact_paths = save_topic_model_artifacts(id_run, output_artifacts)
         for _, artifact_path in artifact_paths.items():
             if artifact_path.exists():
-                mlflow.log_artifact(str(artifact_path), name="topics_detector_model")
+                mlflow.log_artifact(str(artifact_path), artifact_path=="topics_detector_model")
 
     print("Topics detector training pipeline (train only) completed successfully.")
 
