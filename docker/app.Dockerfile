@@ -1,28 +1,29 @@
-# app.Dockerfile
 FROM python:3.10-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# System deps necesarios (git para llms_inferer, libpq para psycopg2)
+# Paquetes de sistema necesarios: git (para llms_inferer), psycopg2, compilación, etc.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
     git \
+    build-essential \
     libpq-dev \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalar dependencias Python
-COPY requirements.txt .
+# Copiamos sólo lo necesario para instalar el paquete
+COPY pyproject.toml ./
+COPY requirements.txt ./
+COPY src ./src
+
+# Instalamos dependencias
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi && \
+    pip install -e .
 
-# Copiar el resto del proyecto
+# Copiamos el resto del proyecto
 COPY . .
 
-# Instalar el paquete en modo editable
-RUN pip install -e .
-
-# Comando por defecto (se sobrescribe en docker-compose para cada servicio)
-CMD ["bash"]
+# Puerto interno (la API usará 8000; se mapea desde docker-compose)
+EXPOSE 8000
