@@ -95,7 +95,7 @@ services:
     container_name: news_nlp_airflow_webserver
     restart: always
     depends_on:
-      airflow_init:
+      airflow-init:
         condition: service_completed_successfully
     env_file:
       - .env
@@ -112,7 +112,7 @@ services:
     container_name: news_nlp_airflow_scheduler
     restart: always
     depends_on:
-      airflow_init:
+      airflow-init:
         condition: service_completed_successfully
     env_file:
       - .env
