@@ -66,7 +66,7 @@ services:
       --host 0.0.0.0
       --port 8000
     ports:
-      - "8001:8000"
+      - "8004:8000"
 
   airflow-init:
     image: apache/airflow:2.9.0-python3.10
