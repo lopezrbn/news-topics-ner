@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:15
@@ -21,7 +19,7 @@ services:
   mlflow:
     build:
       context: .
-      dockerfile: app.Dockerfile
+      dockerfile: docker/app.Dockerfile
     container_name: news_nlp_mlflow
     restart: always
     env_file:
@@ -46,7 +44,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: app.Dockerfile
+      dockerfile: docker/app.Dockerfile
     container_name: news_nlp_api
     restart: always
     env_file:
