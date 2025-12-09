@@ -5,7 +5,7 @@ services:
   db:
     image: postgres:15
     container_name: news_nlp_db
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
     environment:
@@ -18,6 +18,11 @@ services:
     volumes:
       - news_nlp_db_data:/var/lib/postgresql/data
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ======================
   # API FastAPI
@@ -103,7 +108,7 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS}
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
     ports:
@@ -128,7 +133,7 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS}
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
     volumes:
