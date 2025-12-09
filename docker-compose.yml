@@ -25,7 +25,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: app.Dockerfile
+      dockerfile: docker/app.Dockerfile
     container_name: news_nlp_api
     restart: unless-stopped
     env_file:
@@ -46,7 +46,7 @@ services:
   mlflow:
     build:
       context: .
-      dockerfile: app.Dockerfile
+      dockerfile: docker/app.Dockerfile
     container_name: news_nlp_mlflow
     restart: unless-stopped
     env_file:
