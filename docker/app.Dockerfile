@@ -1,39 +1,28 @@
+# app.Dockerfile
 FROM python:3.10-slim
 
-# Avoid interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Install minimal system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    libpq-dev \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create working directory
 WORKDIR /app
 
-# Copy project files
-COPY pyproject.toml poetry.lock* requirements.txt* .env.example ./  /app/
-COPY src/ /app/src/
-COPY config/ /app/config/
-COPY airflow_dags/ /app/airflow_dags/
+# System deps necesarios (git para llms_inferer, libpq para psycopg2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libpq-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Instalar dependencias Python
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi && \
-    pip install -e .
+    pip install -r requirements.txt
 
-# Install spaCy model
-RUN python -m spacy download en_core_web_md
+# Copiar el resto del proyecto
+COPY . .
 
-# Create directories for models/artifacts
-RUN mkdir -p /app/models /app/mlruns
+# Instalar el paquete en modo editable
+RUN pip install -e .
 
-# Default variables (will be overwritten with .env from compose)
-ENV PYTHONUNBUFFERED=1
-ENV MLFLOW_ARTIFACT_ROOT=/app/mlruns
-
-# Default command: start the API
-CMD ["uvicorn", "news_nlp.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando por defecto (se sobrescribe en docker-compose para cada servicio)
+CMD ["bash"]
