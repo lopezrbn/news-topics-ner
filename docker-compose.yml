@@ -1,7 +1,6 @@
+version: "3.9"
+
 services:
-  # ======================
-  # Postgres compartido
-  # ======================
   db:
     image: postgres:15
     container_name: news_nlp_db
@@ -9,140 +8,142 @@ services:
     env_file:
       - .env
     environment:
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: postgres
     ports:
-      # Host 5433 -> contenedor 5432
-      - "5433:5432"
+      - "5433:5432"   # host:container
     volumes:
       - news_nlp_db_data:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      # si quieres que se cree el usuario/news_nlp_db la primera vez:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
 
-  # ======================
-  # API FastAPI
-  # ======================
-  api:
-    build:
-      context: .
-      dockerfile: docker/app.Dockerfile
-    container_name: news_nlp_api
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      - db
-    ports:
-      # Host 8000 -> contenedor 8000
-      - "8000:8000"
-    command: >
-      uvicorn news_nlp.api.app:app
-        --host 0.0.0.0
-        --port 8000
-
-  # ======================
-  # MLflow server
-  # ======================
   mlflow:
     build:
       context: .
-      dockerfile: docker/app.Dockerfile
+      dockerfile: app.Dockerfile
     container_name: news_nlp_mlflow
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
+    environment:
+      # MLflow tracking en la misma DB de negocio (simplificación)
+      MLFLOW_TRACKING_URI: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      MLFLOW_ARTIFACTS_DIR: /mlflow/artifacts
     depends_on:
       - db
-    ports:
-      # Host 5000 -> contenedor 5000
-      - "5000:5000"
-    volumes:
-      - mlflow_artifacts:/mlflow/artifacts
     command: >
       mlflow server
-        --backend-store-uri ${MLFLOW_BACKEND_STORE_URI}
-        --artifacts-destination ${MLFLOW_ARTIFACT_ROOT}
-        --host 0.0.0.0
-        --port 5000
+      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    ports:
+      - "5001:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
 
-  # ======================
-  # Airflow init (one-shot)
-  # ======================
+  api:
+    build:
+      context: .
+      dockerfile: app.Dockerfile
+    container_name: news_nlp_api
+    restart: always
+    env_file:
+      - .env
+    environment:
+      # Apunta a la DB del servicio db
+      NEWS_NLP_DB_HOST: db
+      NEWS_NLP_DB_PORT: 5432
+      NEWS_NLP_DB_NAME: ${POSTGRES_DB}
+      NEWS_NLP_DB_USER: ${POSTGRES_USER}
+      NEWS_NLP_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # MLflow interno (desde la API / pipelines)
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      - db
+      - mlflow
+    command: >
+      uvicorn news_nlp.api.app:app
+      --host 0.0.0.0
+      --port 8000
+    ports:
+      - "8001:8000"
+
   airflow-init:
     image: apache/airflow:2.9.0-python3.10
     container_name: news_nlp_airflow_init
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     env_file:
       - .env
-    entrypoint: /bin/bash
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_user:${AIRFLOW_DB_PASSWORD}@db:5432/airflow_db
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
     command: >
-      -c "airflow db migrate &&
-          airflow users create
-            --username $$AIRFLOW_USER
-            --password $$AIRFLOW_PASSWORD
-            --firstname $$AIRFLOW_FIRSTNAME
-            --lastname $$AIRFLOW_LASTNAME
-            --role $$AIRFLOW_ROLE
-            --email $$AIRFLOW_EMAIL"
-    volumes:
-      - ./airflow_dags:/opt/airflow/dags
-    restart: "no"
+      bash -c "
+      airflow db migrate &&
+      airflow users create
+        --username ${AIRFLOW_ADMIN_USER}
+        --password ${AIRFLOW_ADMIN_PASSWORD}
+        --firstname Admin
+        --lastname User
+        --role Admin
+        --email admin@example.com
+      "
+    # solo se ejecuta una vez; no necesita puertos ni volúmenes
 
-  # ======================
-  # Airflow webserver
-  # ======================
   airflow-webserver:
     image: apache/airflow:2.9.0-python3.10
     container_name: news_nlp_airflow_webserver
-    restart: unless-stopped
+    restart: always
+    depends_on:
+      - db
+      - airflow-init
     env_file:
       - .env
     environment:
-      _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS}
-    depends_on:
-      db:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
-    ports:
-      # Host 8082 -> contenedor 8080
-      - "8082:8080"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_user:${AIRFLOW_DB_PASSWORD}@db:5432/airflow_db
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     volumes:
       - ./airflow_dags:/opt/airflow/dags
-      - airflow_logs:/opt/airflow/logs
     command: >
+      bash -c "
       airflow webserver
+      "
+    ports:
+      - "8082:8080"
 
-  # ======================
-  # Airflow scheduler
-  # ======================
   airflow-scheduler:
     image: apache/airflow:2.9.0-python3.10
     container_name: news_nlp_airflow_scheduler
-    restart: unless-stopped
+    restart: always
+    depends_on:
+      - db
+      - airflow-init
     env_file:
       - .env
     environment:
-      _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS}
-    depends_on:
-      db:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow_user:${AIRFLOW_DB_PASSWORD}@db:5432/airflow_db
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     volumes:
       - ./airflow_dags:/opt/airflow/dags
-      - airflow_logs:/opt/airflow/logs
     command: >
+      bash -c "
       airflow scheduler
+      "
 
 volumes:
   news_nlp_db_data:
   mlflow_artifacts:
-  airflow_logs:
