@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # === Single Postgres for all (news_nlp + airflow + mlflow) ===
   db:

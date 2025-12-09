@@ -3,7 +3,7 @@ pandas
 openpyxl
 pyarrow
 scikit-learn
-llms_inferer @ git+ssh://git@github.com/lopezrbn/llms_inferer.git@main
+llms_inferer @ git+https://git@github.com/lopezrbn/llms_inferer.git@main
 matplotlib
 spacy
 sqlalchemy
