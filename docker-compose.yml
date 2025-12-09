@@ -71,28 +71,24 @@ services:
   airflow-init:
     image: apache/airflow:2.9.0-python3.10
     container_name: news_nlp_airflow_init
-    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - .env
-    environment:
-      # Necesario para usar Postgres desde Airflow
-      _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS}
-    depends_on:
-      - db
+    entrypoint: /bin/bash
+    command: >
+      -c "airflow db migrate &&
+          airflow users create
+            --username $$AIRFLOW_USER
+            --password $$AIRFLOW_PASSWORD
+            --firstname $$AIRFLOW_FIRSTNAME
+            --lastname $$AIRFLOW_LASTNAME
+            --role $$AIRFLOW_ROLE
+            --email $$AIRFLOW_EMAIL"
     volumes:
       - ./airflow_dags:/opt/airflow/dags
-      - airflow_logs:/opt/airflow/logs
-    command: >
-      bash -c "
-        airflow db migrate &&
-        airflow users create
-          --username admin
-          --password admin
-          --firstname Admin
-          --lastname User
-          --role Admin
-          --email admin@example.com
-      "
+    restart: "no"
 
   # ======================
   # Airflow webserver
