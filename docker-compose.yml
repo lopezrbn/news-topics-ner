@@ -14,7 +14,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       # Only if you want to expose Postgres to the host (for debugging):
-      # - "5432:5432"
+      - "5432:5432"
     volumes:
       - news_nlp_db_data:/var/lib/postgresql/data
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
