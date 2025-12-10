@@ -9,6 +9,6 @@ topics_namer: |
     Do not include any additional text or explanation in your response, neither before nor after the JSON object, as headers, titles or footers. Only the JSON object itself should be returned.
     This is an example of the expected input and output format:
     Input:
-      '0': ['apple', 'banana', 'orange'], "1": ['car', 'bus', 'bicycle']
+      {"0": ['apple', 'banana', 'orange'], "1": ['car', 'bus', 'bicycle']}
     Output:
-      "0": 'Fruits', '1': 'Vehicles'
+      {"0": 'Fruits', "1": 'Vehicles'}
