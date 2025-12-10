@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from datetime import datetime
@@ -8,8 +9,14 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 
 
-DIR_BASE = Path(__file__).parents[1].resolve()
-VENV_PYTHON = DIR_BASE / ".venv/bin/python"
+# DIR_BASE = Path(__file__).parents[1].resolve()
+DIR_BASE = Path(
+    os.getenv("NEWS_NLP_DIR_BASE", Path(__file__).parents[1].resolve())
+)
+# VENV_PYTHON = DIR_BASE / ".venv/bin/python"
+VENV_PYTHON = os.getenv(
+    "NEWS_NLP_VENV_PYTHON", DIR_BASE / ".venv/bin/python"
+)
 
 DEFAULT_ARGS = {
     "owner": "airflow",
