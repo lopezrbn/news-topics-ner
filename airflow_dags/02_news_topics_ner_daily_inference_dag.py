@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from datetime import datetime
@@ -8,8 +9,13 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 
 
-DIR_BASE = Path(__file__).parents[1].resolve()
-VENV_PYTHON = DIR_BASE / ".venv/bin/python"
+# Environment variable overrides (useful for testing / different setups)
+DIR_BASE = Path(
+    os.getenv("NEWS_NLP_DIR_BASE", Path(__file__).parents[1].resolve())
+)
+VENV_PYTHON = os.getenv(
+    "NEWS_NLP_VENV_PYTHON", DIR_BASE / ".venv/bin/python"
+)
 
 DEFAULT_ARGS = {
     "owner": "airflow",
@@ -19,7 +25,7 @@ DEFAULT_ARGS = {
 
 
 with DAG(
-    dag_id="news_topics_ner_daily_inference",
+    dag_id="02_news_topics_ner_daily_inference",
     description="Daily incremental inference for new prod news (topics + entities).",
     default_args=DEFAULT_ARGS,
     start_date=datetime(2025, 1, 1),
