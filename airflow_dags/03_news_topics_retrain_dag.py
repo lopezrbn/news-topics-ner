@@ -52,7 +52,7 @@ with DAG(
         bash_command=(
             f"cd {DIR_BASE} && "
             f"{VENV_PYTHON} src/news_nlp/pipelines/05_full_inference_pipeline.py "
-            f"--mode--topics-detector overwrite --mode-ner-extractor incremental --sources all"
+            f"--mode-topics-detector overwrite --mode-ner-extractor incremental --sources all"
         ),
     )
 
