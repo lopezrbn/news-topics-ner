@@ -16,7 +16,10 @@ services:
       - "5433:5432"
     volumes:
       - news_nlp_db_data:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+      # Script to create users and DBs (business logic, MLflow and Airflow)
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/00_postgres-init.sql:ro
+      # Schema initialization (tables, etc.)
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER} -d postgres"]
       interval: 5s
@@ -38,6 +41,11 @@ services:
     env_file:
       - .env
     environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       # MLflow usa su propia base de datos (mlflow_db) y usuario mlflow_user
       MLFLOW_BACKEND_STORE_URI: postgresql+psycopg2://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@db:5432/${MLFLOW_DB_NAME}
       MLFLOW_ARTIFACTS_DESTINATION: /mlflow/artifacts
@@ -78,6 +86,11 @@ services:
     env_file:
       - .env
     environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       NEWS_NLP_DB_HOST: db
       NEWS_NLP_DB_PORT: 5432
       NEWS_NLP_DB_NAME: ${NEWS_NLP_DB_NAME}
@@ -103,6 +116,14 @@ services:
     env_file:
       - .env
     environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      NEWS_NLP_DIR_BASE: /opt/airflow/news-topics-ner
+      NEWS_NLP_VENV_PYTHON: python
+      PYTHONPATH: /opt/airflow/news-topics-ner/src
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@db:5432/${AIRFLOW_DB_NAME}
@@ -111,6 +132,7 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     volumes:
       - ./airflow_dags:/opt/airflow/dags
+      - ./:/opt/airflow/news-topics-ner
     command: >
       bash -c "airflow db migrate &&
       airflow users create --username ${AIRFLOW_ADMIN_USER} --password ${AIRFLOW_ADMIN_PASSWORD} --firstname Admin --lastname User --role Admin --email admin@example.com"
@@ -130,6 +152,14 @@ services:
     env_file:
       - .env
     environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      NEWS_NLP_DIR_BASE: /opt/airflow/news-topics-ner
+      NEWS_NLP_VENV_PYTHON: python
+      PYTHONPATH: /opt/airflow/news-topics-ner/src
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@db:5432/${AIRFLOW_DB_NAME}
@@ -138,6 +168,7 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     volumes:
       - ./airflow_dags:/opt/airflow/dags
+      - ./:/opt/airflow/news-topics-ner
     command: >
       bash -c "
       airflow webserver
@@ -160,6 +191,14 @@ services:
     env_file:
       - .env
     environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      NEWS_NLP_DIR_BASE: /opt/airflow/news-topics-ner
+      NEWS_NLP_VENV_PYTHON: python
+      PYTHONPATH: /opt/airflow/news-topics-ner/src
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@db:5432/${AIRFLOW_DB_NAME}
@@ -168,6 +207,7 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     volumes:
       - ./airflow_dags:/opt/airflow/dags
+      - ./:/opt/airflow/news-topics-ner
     command: >
       bash -c "
       airflow scheduler

@@ -5,9 +5,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Paquetes de sistema necesarios: git (para llms_inferer), psycopg2, compilación, etc.
+# Paquetes de sistema necesarios
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -16,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./
 COPY requirements.txt ./
 COPY src ./src
+COPY data ./data
 
 # Instalamos dependencias
 RUN pip install --upgrade pip && \

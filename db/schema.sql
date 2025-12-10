@@ -2,6 +2,12 @@
 -- SCHEMA FOR news_nlp PROJECT
 -- =========================================================
 
+-- Switch to the news_nlp database
+\connect news_nlp;
+
+-- Use the public schema
+SET search_path TO public;
+
 -- ======================
 -- 1) Table: news
 -- This table is the result of the data ingestion and text cleaning pipeline
@@ -153,3 +159,14 @@ CREATE TABLE IF NOT EXISTS entities_per_news (
 
 CREATE INDEX IF NOT EXISTS idx_entities_per_news_id_entity
     ON entities_per_news(id_entity);
+
+-- Grant privileges to news_nlp_user on all tables and sequences
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO news_nlp_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO news_nlp_user;
+
+-- Ensure future tables and sequences also have the correct privileges
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL ON TABLES TO news_nlp_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL ON SEQUENCES TO news_nlp_user;
