@@ -8,12 +8,10 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
-
-# DIR_BASE = Path(__file__).parents[1].resolve()
+# Environment variable overrides (useful for testing / different setups)
 DIR_BASE = Path(
     os.getenv("NEWS_NLP_DIR_BASE", Path(__file__).parents[1].resolve())
 )
-# VENV_PYTHON = DIR_BASE / ".venv/bin/python"
 VENV_PYTHON = os.getenv(
     "NEWS_NLP_VENV_PYTHON", DIR_BASE / ".venv/bin/python"
 )
@@ -26,7 +24,7 @@ DEFAULT_ARGS = {
 
 
 with DAG(
-    dag_id="news_topics_ner_initial_setup",
+    dag_id="01_news_topics_ner_initial_setup",
     description="Initial setup for news-topics-ner: load news, train topics model, full inference (train+test).",
     default_args=DEFAULT_ARGS,
     start_date=datetime(2025, 1, 1),
