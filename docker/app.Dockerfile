@@ -5,25 +5,27 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Paquetes de sistema necesarios
+# System packages needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiamos sólo lo necesario para instalar el paquete
+# Copy project files needed for installing dependencies
 COPY pyproject.toml ./
 COPY requirements.txt ./
 COPY src ./src
 COPY data ./data
 
-# Instalamos dependencias
+# Install Python dependencies
 RUN pip install --upgrade pip && \
     if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi && \
     pip install -e .
 
-# Copiamos el resto del proyecto
+# Copy the rest of the project
 COPY . .
 
-# Puerto interno (la API usará 8000; se mapea desde docker-compose)
+# Internal port (the API will use 8000; mapped from docker-compose)
 EXPOSE 8000

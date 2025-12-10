@@ -1,6 +1,7 @@
 services:
+
   # ============================================
-  # Postgres - una instancia, 3 BDs
+  # Postgres - one instance, three DBs
   # ============================================
   db:
     image: postgres:15
@@ -11,10 +12,12 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_SUPERUSER}
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
-      POSTGRES_DB: postgres
+      # Main Postgres DB to initialize. Then, postgres-init.sql will create other DBs as needed.
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
     ports:
-      - "5433:5432"
+      - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
     volumes:
+      # Data volume for Postgres
       - news_nlp_db_data:/var/lib/postgresql/data
       # Script to create users and DBs (business logic, MLflow and Airflow)
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/00_postgres-init.sql:ro
@@ -25,6 +28,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
 
   # ============================================
   # MLflow (tracking server + artifacts)
@@ -41,25 +45,19 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      # MLflow usa su propia base de datos (mlflow_db) y usuario mlflow_user
-      MLFLOW_BACKEND_STORE_URI: postgresql+psycopg2://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@db:5432/${MLFLOW_DB_NAME}
+      MLFLOW_BACKEND_STORE_URI: postgresql+psycopg2://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@${DB_HOST}:${DB_PORT_CONTAINER}/${MLFLOW_DB_NAME}
       MLFLOW_ARTIFACTS_DESTINATION: /mlflow/artifacts
     command:
       - mlflow
       - server
       - --backend-store-uri
-      - postgresql+psycopg2://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@db:5432/${MLFLOW_DB_NAME}
+      - postgresql+psycopg2://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@${DB_HOST}:${DB_PORT_CONTAINER}/${MLFLOW_DB_NAME}
       - --artifacts-destination
       - /mlflow/artifacts
       - --host
       - 0.0.0.0
       - --port
-      - "5000"
+      - ${MLFLOW_PORT_CONTAINER}
       - --allowed-hosts
       - "*"
       - --cors-allowed-origins
@@ -67,7 +65,14 @@ services:
     volumes:
       - mlflow_artifacts:/mlflow/artifacts
     ports:
-      - "5000:5000"  # MLflow UI en http://<host>:5000
+      - "${MLFLOW_PORT_HOST}:${MLFLOW_PORT_CONTAINER}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${MLFLOW_PORT_CONTAINER}/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 
   # ============================================
   # API (FastAPI)
@@ -82,32 +87,37 @@ services:
       db:
         condition: service_healthy
       mlflow:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      NEWS_NLP_DB_HOST: db
-      NEWS_NLP_DB_PORT: 5432
-      NEWS_NLP_DB_NAME: ${NEWS_NLP_DB_NAME}
-      NEWS_NLP_DB_USER: ${NEWS_NLP_DB_USER}
-      NEWS_NLP_DB_PASSWORD: ${NEWS_NLP_DB_PASSWORD}
-      MLFLOW_TRACKING_URI: http://mlflow:5000
+      # Database connection for the news_nlp business DB
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT_CONTAINER}
+      DB_NAME: ${NEWS_NLP_DB_NAME}
+      DB_USER: ${NEWS_NLP_DB_USER}
+      DB_PASSWORD: ${NEWS_NLP_DB_PASSWORD}
+      # MLflow tracking server URI
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME}
     command: >
       bash -c "
-      uvicorn news_nlp.api.app:app --host 0.0.0.0 --port 8000
+      uvicorn news_nlp.api.app:app --host 0.0.0.0 --port ${API_PORT_CONTAINER}
       "
     ports:
-      - "8005:8000"  # API en http://<host>:8005
+      - "${API_PORT_HOST}:${API_PORT_CONTAINER}"
     volumes:
       - ./:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${API_PORT_CONTAINER}/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 
   # ============================================
-  # Airflow - inicialización (migraciones + usuario admin)
+  # Airflow - initialization (migrations + admin user)
   # ============================================
   airflow-init:
     image: apache/airflow:2.9.0-python3.10
@@ -118,26 +128,35 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      # Project paths within the Airflow container
       NEWS_NLP_DIR_BASE: /opt/airflow/news-topics-ner
       NEWS_NLP_VENV_PYTHON: python
       PYTHONPATH: /opt/airflow/news-topics-ner/src
+      # Business database connection
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT_CONTAINER}
+      DB_NAME: ${NEWS_NLP_DB_NAME}
+      DB_USER: ${NEWS_NLP_DB_USER}
+      DB_PASSWORD: ${NEWS_NLP_DB_PASSWORD}
+      # Airflow configuration
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@db:5432/${AIRFLOW_DB_NAME}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${DB_HOST}:${DB_PORT_CONTAINER}/${AIRFLOW_DB_NAME}
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      # MLflow configuration
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME}
+      # API keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - ./airflow_dags:/opt/airflow/dags
       - ./:/opt/airflow/news-topics-ner
     command: >
       bash -c "airflow db migrate &&
       airflow users create --username ${AIRFLOW_ADMIN_USER} --password ${AIRFLOW_ADMIN_PASSWORD} --firstname Admin --lastname User --role Admin --email admin@example.com"
+
 
   # ============================================
   # Airflow - webserver
@@ -154,20 +173,28 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      # Project paths within the Airflow container
       NEWS_NLP_DIR_BASE: /opt/airflow/news-topics-ner
       NEWS_NLP_VENV_PYTHON: python
       PYTHONPATH: /opt/airflow/news-topics-ner/src
+      # Business database connection
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT_CONTAINER}
+      DB_NAME: ${NEWS_NLP_DB_NAME}
+      DB_USER: ${NEWS_NLP_DB_USER}
+      DB_PASSWORD: ${NEWS_NLP_DB_PASSWORD}
+      # Airflow configuration
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@db:5432/${AIRFLOW_DB_NAME}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${DB_HOST}:${DB_PORT_CONTAINER}/${AIRFLOW_DB_NAME}
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      # MLflow configuration
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME}
+      # API keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - ./airflow_dags:/opt/airflow/dags
       - ./:/opt/airflow/news-topics-ner
@@ -176,7 +203,14 @@ services:
       airflow webserver
       "
     ports:
-      - "8082:8080"  # Airflow UI en http://<host>:8082
+      - "${AIRFLOW_PORT_HOST}:${AIRFLOW_PORT_CONTAINER}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${AIRFLOW_PORT_CONTAINER}/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 
   # ============================================
   # Airflow - scheduler
@@ -193,20 +227,28 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      # Project paths within the Airflow container
       NEWS_NLP_DIR_BASE: /opt/airflow/news-topics-ner
       NEWS_NLP_VENV_PYTHON: python
       PYTHONPATH: /opt/airflow/news-topics-ner/src
+      # Business database connection
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT_CONTAINER}
+      DB_NAME: ${NEWS_NLP_DB_NAME}
+      DB_USER: ${NEWS_NLP_DB_USER}
+      DB_PASSWORD: ${NEWS_NLP_DB_PASSWORD}
+      # Airflow configuration
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@db:5432/${AIRFLOW_DB_NAME}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${DB_HOST}:${DB_PORT_CONTAINER}/${AIRFLOW_DB_NAME}
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      # MLflow configuration
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME}
+      # API keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - ./airflow_dags:/opt/airflow/dags
       - ./:/opt/airflow/news-topics-ner
@@ -214,6 +256,13 @@ services:
       bash -c "
       airflow scheduler
       "
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 
 volumes:
   news_nlp_db_data:
