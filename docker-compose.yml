@@ -103,6 +103,8 @@ services:
       "
     ports:
       - "8005:8000"  # API en http://<host>:8005
+    volumes:
+      - ./:/app
 
   # ============================================
   # Airflow - inicialización (migraciones + usuario admin)
