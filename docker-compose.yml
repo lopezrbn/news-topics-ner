@@ -20,7 +20,7 @@ services:
       # Data volume for Postgres
       - news_nlp_db_data:/var/lib/postgresql/data
       # Script to create users and DBs (business logic, MLflow and Airflow)
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/00_postgres-init.sql:ro
+      - ./db/postgres-init-docker.sql:/docker-entrypoint-initdb.d/00_postgres-init.sql:ro
       # Schema initialization (tables, etc.)
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     healthcheck:
