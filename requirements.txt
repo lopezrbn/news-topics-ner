@@ -3,10 +3,11 @@ pandas
 openpyxl
 pyarrow
 scikit-learn
-llms_inferer @ git+https://git@github.com/lopezrbn/llms_inferer.git@main
 matplotlib
 spacy
 sqlalchemy
 psycopg2-binary
 mlflow
 apache_airflow
+openai
+load_dotenv

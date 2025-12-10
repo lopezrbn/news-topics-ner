@@ -1,10 +1,40 @@
 import json
 import os
 from typing import Dict, List, Tuple
-
-from llms_inferer import Llms_inferer
+import yaml
+from openai import OpenAI
 
 from news_nlp.config import paths
+
+
+def load_prompt_from_yaml(path: str, module: str) -> str:
+	"""
+	Load the prompt for the given module from a YAML file.
+	Args:
+		path (str): Path to the YAML file.
+		module (str): Module name to get the prompt for.
+	Returns:
+		str: The prompt string.
+	"""
+	with open(path, 'r') as file:
+		prompts = yaml.safe_load(file)
+	return prompts.get(module, "")
+
+
+def infer_llm(prompt: str, system_prompt: str, model: str, api_key: str) -> str:
+    """
+    Call an LLM model with system and user prompts and return the text response.
+    """
+    client = OpenAI(api_key=api_key)
+
+    response = client.responses.create(
+        model=model,
+        instructions=system_prompt,
+        input=prompt,
+    )
+
+    # Extract first text output (simplest case)
+    return response.output_text
 
 
 def generate_topic_names_with_llm(
@@ -17,30 +47,26 @@ def generate_topic_names_with_llm(
     Returns a dict:
       id_topic -> topic_name
     """
-    # Prepare input: id_topic -> list of terms (strings)
-    topics_payload = {
-        str(id_topic): [term for term, _ in terms]
-        for id_topic, terms in top_terms_per_topic.items()
-    }
-
-    # Initialize Llms_inferer
+    # Get API key
     api_key = os.getenv("OPENAI_API_KEY", None)
     if api_key is None:
         raise ValueError("OPENAI_API_KEY is not set in the environment.")
-
-    inferer = Llms_inferer(
-        model="gpt-5",
-        prompts_path=str(paths.PROMPTS_FILE),
-        api_key=api_key,
-        run_local=False,
-    )
-
-    system_prompt = inferer.get_prompt(module="topics_namer")
+    
+    # Prepare input: id_topic -> list of terms (strings)
+    topics_payload: Dict[str, List[str]] = {
+        str(id_topic): [term for term, _ in terms]
+        for id_topic, terms in top_terms_per_topic.items()
+    }
     user_prompt = json.dumps(topics_payload)
 
-    response = inferer.infer(
+    system_prompt=load_prompt_from_yaml(paths.PROMPTS_FILE, module="topics_namer")
+
+    # Infer with LLM
+    response = infer_llm(
+        model="gpt-5",
         system_prompt=system_prompt,
         prompt=user_prompt,
+        api_key=api_key,
     )
 
     # Response is expected to be a JSON mapping id_topic (string) -> name (string)
