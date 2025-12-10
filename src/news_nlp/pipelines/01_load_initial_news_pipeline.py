@@ -3,10 +3,39 @@ from typing import Literal
 
 import pandas as pd
 from dotenv import load_dotenv
+import zipfile
 
 from news_nlp.config import paths
 from news_nlp.db.connection import get_engine
 from news_nlp.preprocessing.text_cleaning import clean_text
+
+
+def _extract_data_from_zip(
+    zip_path: Path,
+    extract_to: Path,
+) -> None:
+    """
+    Extracts the contents of a ZIP file to a specified directory.
+
+    Parameters
+    ----------
+    zip_path : Path
+        Path to the ZIP file.
+    extract_to : Path
+        Directory where the contents will be extracted.
+    """
+    if not zip_path.exists():
+        raise FileNotFoundError(f"ZIP file not found: {zip_path}")
+    
+    # Create raw data directory if it doesn't exist
+    paths.DIR_DATA_RAW.mkdir(parents=True, exist_ok=True)
+
+    # Unzip the compressed data file into the raw data directory
+    print(f"Extracting {zip_path} to {extract_to}")
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_to)
+
+    print(f"Extraction completed.")
 
 
 def load_data_into_news_table(
@@ -31,7 +60,9 @@ def load_data_into_news_table(
         Value to store in the `source` column of `news`.
     """
     if not path.exists():
-        raise FileNotFoundError(f"TSV file not found: {path}")
+        _extract_data_from_zip(paths.DATA_COMPRESSED, paths.DIR_DATA_RAW)
+        if not path.exists():
+            raise FileNotFoundError(f"TSV file not found: {path}")
 
     print(f"Reading raw TSV from {path} (source='{source}')")
 
