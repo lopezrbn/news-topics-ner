@@ -49,5 +49,23 @@ KMEANS_MODEL = DIR_MODELS_TOPICS / "kmeans_model.joblib"
 MODEL_NER_SPACY = DIR_MODELS_NER / "en_core_web_md"
 # MODEL_NER_SPACY_SM = DIR_MODELS_NER / "en_core_web_sm"
 
+# Notebooks subdirectories
+DIR_NOTEBOOKS_DATA = DIR_NOTEBOOKS / "data"
+DIR_NOTEBOOKS_MODELS = DIR_NOTEBOOKS / "models"
+
+# Notebooks data file paths
+X_TFIDF_JLIB = DIR_NOTEBOOKS_DATA / "X_tfidf.joblib"
+DF_VARIANCE = DIR_NOTEBOOKS_DATA / "df_variance.csv"
+X_REDUCED_DICT_JLIB = DIR_NOTEBOOKS_DATA / "X_reduced_dict.joblib"
+DF_SILHOUETTE_DICT_JLIB = DIR_NOTEBOOKS_DATA / "df_silhouette_dict.joblib"
+DF_GRID_SEARCH = DIR_NOTEBOOKS_DATA / "df_grid_search.csv"
+TOPIC_NAMES_FILE = DIR_NOTEBOOKS_DATA / "topic_names.json"
+
+# Notebooks models file paths
+MODEL_NOTEBOOKS_TFIDF = DIR_NOTEBOOKS_MODELS / "vectorizer_tfidf.joblib"
+MODEL_NOTEBOOKS_SVD = DIR_NOTEBOOKS_MODELS / "model_svd.joblib"
+MODEL_NOTEBOOKS_KMEANS = DIR_NOTEBOOKS_MODELS / "model_kmeans.joblib"
+MODEL_NOTEBOOKS_PIPELINE = DIR_NOTEBOOKS_MODELS / "model_pipeline.joblib"
+
 # .env file path
 ENV_FILE = DIR_BASE / ".env"
