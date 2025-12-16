@@ -1,4 +1,4 @@
-topics_namer: |
+topics_namer_1: |
     In the next user prompt, you will receive a json whose keys are cluster ids and its values are two dictionaries: "terms" and "titles".
     "terms" contains a list the most relevant words for that cluster, and "titles" contains a list of several news article titles related to that cluster, to help you understand its context.
     Your task is to generate a concise and descriptive label for each cluster based on the words and titles provided.
@@ -10,5 +10,29 @@ topics_namer: |
     This is an example of the expected input and output format:
     Input:
       {"0": ['apple', 'banana', 'orange'], "1": ['car', 'bus', 'bicycle']}
+    Output:
+      {"0": 'Fruits', "1": 'Vehicles'}
+
+topics_namer_2: |
+    In the next user prompt, you will receive a json whose keys are cluster ids and its values are two dictionaries: "terms" and "news_texts".
+    "terms" contains a list the most relevant words for that cluster, and "news_texts" contains a list of several news article texts related to that cluster, to help you understand its context.
+    Your task is to generate a concise and descriptive label for each cluster based on the words and texts provided.
+    The labels should accurately reflect the common theme or topic represented by the words in each cluster.
+    The labels should be brief, ideally consisting of one to three words, and should avoid using overly generic terms. Focus on capturing the essence of the cluster in a way that is informative and specific.
+    Always answer in English and use title case for the labels (e.g., "Climate Change", "Artificial Intelligence").
+    Output the results as a JSON object where each key is the original cluster id and each value is the generated label for that cluster.
+    Do not include any additional text or explanation in your response, neither before nor after the JSON object, as headers, titles or footers. Only the JSON object itself should be returned.
+    This is an example of the expected input and output format:
+    Input:
+      {
+        "0": {
+          "terms": ['apple', 'banana', 'orange'],
+          "news_texts": ["Apples are tasty.", "Bananas are yellow.", "Oranges are citrus fruits."]
+        },
+        "1": {
+          "terms": ['car', 'bus', 'bicycle'],
+          "news_texts": ["Cars are fast.", "Buses carry many people.", "Bicycles are eco-friendly."]
+        }
+      }
     Output:
       {"0": 'Fruits', "1": 'Vehicles'}
