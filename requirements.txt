@@ -11,3 +11,4 @@ mlflow
 apache_airflow
 openai
 load_dotenv
+gensim
