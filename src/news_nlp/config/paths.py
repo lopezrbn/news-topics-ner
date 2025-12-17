@@ -71,3 +71,4 @@ MODEL_NOTEBOOKS_PIPELINE = DIR_NOTEBOOKS_MODELS / "model_pipeline.joblib"
 
 # .env file path
 ENV_FILE = DIR_BASE / ".env"
+# ENV_FILE = DIR_BASE / ".env.local"
