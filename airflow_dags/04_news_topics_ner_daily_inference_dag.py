@@ -25,7 +25,7 @@ DEFAULT_ARGS = {
 
 
 with DAG(
-    dag_id="02_news_topics_ner_daily_inference",
+    dag_id="04_news_topics_ner_daily_inference",
     description="Daily incremental inference for new prod news (topics + entities).",
     default_args=DEFAULT_ARGS,
     start_date=datetime(2025, 1, 1),

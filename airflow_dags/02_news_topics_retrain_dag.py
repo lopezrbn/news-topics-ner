@@ -25,7 +25,7 @@ DEFAULT_ARGS = {
 
 
 with DAG(
-    dag_id="03_news_topics_ner_retrain",
+    dag_id="02_news_topics_ner_retrain",
     description=(
         "Retrain topics detector model and optionally recompute topics + entities "
         "for selected sources."
