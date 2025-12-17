@@ -31,6 +31,7 @@ def ingest_task(tsv_path: str, start_logical_dt_iso: str, period_seconds: int, f
         fraction_per_run=fraction_per_run,
         logical_date=logical_date,
         data_sep="\t",
+        loop=True,
     )
 
 with DAG(
