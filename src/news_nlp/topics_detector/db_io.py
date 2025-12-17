@@ -33,7 +33,7 @@ def load_training_texts() -> pd.Series:
     if df.empty:
         raise ValueError("No training texts found in news (source='train').")
 
-    return df["text"]
+    return df
 
 
 def insert_topics_model_training_run_df(
