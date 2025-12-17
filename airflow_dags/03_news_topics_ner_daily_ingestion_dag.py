@@ -16,8 +16,8 @@ START_LOGICAL_DT_ISO = "2025-12-01T00:00:00+00:00"
 
 # SCHEDULE = "0 * * * *"    # Hourly schedule
 # PERIOD_SECONDS = 3600
-SCHEDULE = "*/1 * * * *"    # Minutely schedule
-PERIOD_SECONDS = 60
+SCHEDULE = "*/10 * * * *"    # Every 10 minutes
+PERIOD_SECONDS = 600
 
 FRACTION_PER_RUN = 0.01     # 1% of TSV per run
 

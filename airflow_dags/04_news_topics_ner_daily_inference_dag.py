@@ -30,7 +30,8 @@ with DAG(
     default_args=DEFAULT_ARGS,
     start_date=datetime(2025, 1, 1),
     # schedule_interval="0 7 * * *",  # every day at 06:00
-    schedule_interval=None,            # Manual launching for the moment as we don't have production news feed
+    schedule_interval="*/10 * * * *",  # every 10 minutes
+    # schedule_interval=None,            # Manual launching for the moment as we don't have production news feed
     catchup=False,
     tags=["news-topics-ner", "inference", "daily"],
 ) as dag:
