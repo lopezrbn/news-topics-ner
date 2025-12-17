@@ -18,16 +18,16 @@ It includes:
 flowchart TB
   subgraph "Docker Compose"
     direction LR
-    AF["Airflow\n(webserver + scheduler)"]
+    AF["Airflow (webserver + scheduler)"]
     P["Pipelines"]
     API["FastAPI Service"]
     DB[(PostgreSQL)]
     MLF["MLflow Server"]
 
     AF -->|"orchestrates"| P
-    P -->|"stores data"| DB
+    P <-->|"reads/writes"| DB
     P -->|"logs runs"| MLF
-    API -->|"reads/writes"| DB
+    API <--|"reads"| DB
     API -->|"tracks (opt.)"| MLF
   end
 
