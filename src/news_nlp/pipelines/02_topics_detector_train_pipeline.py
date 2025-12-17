@@ -104,7 +104,7 @@ def main() -> None:
 
         # 4.2) Train topic model
         output_artifacts: TopicModelArtifacts = train_topic_model(
-            texts=texts.tolist(),
+            texts=texts,
             config=input_config,
         )
         # Log trained model to MLflow
@@ -130,7 +130,7 @@ def main() -> None:
         top_terms_per_topic = compute_top_terms_per_topic(input_config, output_artifacts)
 
         # 4.4.2) Generate topic names with LLM
-        topic_names = generate_topic_names_with_llm(top_terms_per_topic)
+        topic_names = generate_topic_names_with_llm(top_terms_per_topic, df_train)
 
         # 4.4.3) Build dataframe for "topics" table
         df_topics = build_topics_df(

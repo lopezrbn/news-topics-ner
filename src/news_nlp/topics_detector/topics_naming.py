@@ -110,7 +110,7 @@ def generate_topic_names_with_llm(
 		topic_names_raw.update(response_json)
 
 		with open(paths.TOPIC_NAMES_FILE, "w", encoding="utf-8") as f:
-			json.dump(topic_names, f, ensure_ascii=False, indent=4)
+			json.dump(topic_names_raw, f, ensure_ascii=False, indent=4)
 
 	# Convert keys to int and ensure we return a dict[int, str]
 	topic_names: Dict[int, str] = {}

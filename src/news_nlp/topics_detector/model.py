@@ -164,7 +164,7 @@ def enrich_df_train_w_dist_to_centroid(df_train, output_artifacts):
     X_reduced = output_artifacts.X_reduced
     cluster_labels = output_artifacts.cluster_labels
     # Get centroids
-    centroids = pipeline.named_steps["cluster"].cluster_centers_
+    centroids = pipeline.named_steps["kmeans"].cluster_centers_
     # Calculate distances to centroids
     distances = np.linalg.norm(X_reduced - centroids[cluster_labels], axis=1)
     # Add distance to centroid metric to df_train
