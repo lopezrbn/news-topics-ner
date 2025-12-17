@@ -15,21 +15,21 @@ It includes:
 ## High-level architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph "Docker Compose"
-    DB[(PostgreSQL)]
-    AF["Airflow (webserver + scheduler)"]
-    MLF["MLflow Server"]
+    direction LR
+    AF["Airflow\n(webserver + scheduler)"]
+    P["Pipelines"]
     API["FastAPI Service"]
+    DB[(PostgreSQL)]
+    MLF["MLflow Server"]
+
+    AF -->|"orchestrates"| P
+    P -->|"stores data"| DB
+    P -->|"logs runs"| MLF
+    API -->|"reads/writes"| DB
+    API -->|"tracks (opt.)"| MLF
   end
-
-  P["Pipelines"]
-
-  AF -->|"runs pipelines"| P
-  P -->|"reads and writes"| DB
-  P -->|"logs runs and artifacts"| MLF
-  API -->|"reads models and writes results"| DB
-  API -->|"optionally queries MLflow"| MLF
 
 ```
 
