@@ -12,6 +12,7 @@ models/
 
 # notebooks
 notebooks/data/X_reduced_dict.joblib
+notebooks/data/X_reduced_final.joblib
 notebooks/data/X_tfidf.joblib
 notebooks/models/
 
