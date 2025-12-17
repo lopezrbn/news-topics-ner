@@ -7,7 +7,8 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import Normalizer
 
 from news_nlp.config import paths
 
@@ -19,18 +20,18 @@ class TopicModelConfig:
     """
     # General
     model_name: str = "tfidf_svd_kmeans"
-    top_terms_per_topic: int = 10
+    top_terms_per_topic: int = 50
     random_state: int = 31415
     # TF-IDF
-    tfidf_max_features: int = 30000
+    tfidf_max_features: int = 30_000
     tfidf_max_df: float = 0.7
     tfidf_min_df: int = 5
     tfidf_ngram_range: Tuple[int, int] = (1, 2)
     tfidf_stop_words: str = "english"
     # Truncated SVD
-    svd_n_components: int = 100
+    svd_n_components: int = 30
     # K-Means
-    kmeans_n_clusters: int = 30
+    kmeans_n_clusters: int = 50
     kmeans_n_init: int | Literal['auto', 'warn'] = "auto"
 
 
@@ -105,6 +106,10 @@ def train_topic_model(
         random_state=config.random_state,
     )
 
+    normalizer = Normalizer(copy=False)
+
+    svd_pipeline = make_pipeline(svd, normalizer)
+
     kmeans = KMeans(
         n_clusters=config.kmeans_n_clusters,
         n_init=config.kmeans_n_init,
@@ -115,7 +120,7 @@ def train_topic_model(
     pipeline = Pipeline(
         steps=[
             ("tfidf", vectorizer),
-            ("svd", svd),
+            ("svd", svd_pipeline),
             ("kmeans", kmeans),
         ]
     )
