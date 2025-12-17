@@ -31,7 +31,7 @@ DF_TEST_CLEAN = DIR_DATA_PROCESSED / "df_test_clean.parquet"
 
 DF_TRAIN_CLUSTERED = DIR_DATA_PROCESSED / "df_train_clustered.parquet"
 DF_ASSIGNMENTS = DIR_DATA_PROCESSED / "df_assignments.parquet"
-DF_TOPICS_META = DIR_DATA_PROCESSED / "df_topics_meta.parquet"
+DF_TOPICS = DIR_DATA_PROCESSED / "df_topics.parquet"
 
 DF_ENTITIES_RAW = DIR_DATA_PROCESSED / "df_entities_raw.parquet"
 DF_ENTITIES = DIR_DATA_PROCESSED / "df_entities.parquet"
@@ -58,13 +58,14 @@ X_TFIDF_JLIB = DIR_NOTEBOOKS_DATA / "X_tfidf.joblib"
 DF_VARIANCE = DIR_NOTEBOOKS_DATA / "df_variance.csv"
 X_REDUCED_DICT_JLIB = DIR_NOTEBOOKS_DATA / "X_reduced_dict.joblib"
 DF_SILHOUETTE_DICT_JLIB = DIR_NOTEBOOKS_DATA / "df_silhouette_dict.joblib"
+DF_ALL_TOPICS_AND_CONFIGS = DIR_NOTEBOOKS_DATA / "df_all_topics_and_configs.parquet"
 DF_GRID_SEARCH = DIR_NOTEBOOKS_DATA / "df_grid_search.csv"
 TOPIC_NAMES_FILE = DIR_NOTEBOOKS_DATA / "topic_names.json"
 
 # Notebooks models file paths
 MODEL_NOTEBOOKS_TFIDF = DIR_NOTEBOOKS_MODELS / "vectorizer_tfidf.joblib"
-MODEL_NOTEBOOKS_SVD = DIR_NOTEBOOKS_MODELS / "model_svd.joblib"
-MODEL_NOTEBOOKS_KMEANS = DIR_NOTEBOOKS_MODELS / "model_kmeans.joblib"
+MODEL_NOTEBOOKS_SVD = DIR_NOTEBOOKS_MODELS / "reductor_svd.joblib"
+MODEL_NOTEBOOKS_KMEANS = DIR_NOTEBOOKS_MODELS / "clusterer_kmeans.joblib"
 MODEL_NOTEBOOKS_PIPELINE = DIR_NOTEBOOKS_MODELS / "model_pipeline.joblib"
 
 # .env file path
