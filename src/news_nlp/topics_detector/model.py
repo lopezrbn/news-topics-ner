@@ -157,6 +157,21 @@ def train_topic_model(
     return artifacts
 
 
+def enrich_df_train_w_dist_to_centroid(df_train, output_artifacts):
+    """Compute distance to centroid for each document and add it as a new metric in df_train"""
+    # Extract data from artifacts
+    pipeline = output_artifacts.pipeline
+    X_reduced = output_artifacts.X_reduced
+    cluster_labels = output_artifacts.cluster_labels
+    # Get centroids
+    centroids = pipeline.named_steps["cluster"].cluster_centers_
+    # Calculate distances to centroids
+    distances = np.linalg.norm(X_reduced - centroids[cluster_labels], axis=1)
+    # Add distance to centroid metric to df_train
+    df_train["dist_centroid"] = distances
+    return df_train
+
+
 def compute_top_terms_per_topic(
     config: TopicModelConfig,
     artifacts: TopicModelArtifacts,

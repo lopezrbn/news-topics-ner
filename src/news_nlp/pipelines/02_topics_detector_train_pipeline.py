@@ -12,6 +12,7 @@ from news_nlp.topics_detector.model import (
     TopicModelConfig,
     TopicModelArtifacts,
     train_topic_model,
+    enrich_df_train_w_dist_to_centroid,
     compute_top_terms_per_topic,
     save_topic_model_artifacts,
 )
@@ -85,8 +86,11 @@ def main() -> None:
     init_mlflow()
 
     # 3) Load training texts
-    texts = load_training_texts()
+    # texts = load_training_texts()
+    df_train = load_training_texts()
+    texts = df_train["text"].astype(str).tolist()
     print(f"Loaded {len(texts)} training texts from news (source='train').")
+    df_train["len_text"] = df_train["text"].apply(len)
 
     # 4) Start MLflow run and train topic model
     input_config = TopicModelConfig()
@@ -110,6 +114,10 @@ def main() -> None:
         silhouette = output_artifacts.silhouette
         mlflow.log_metric("silhouette_score", silhouette)
         print(f"Model trained. Silhouette score: {silhouette:.4f}")
+        # Assign cluster labels to the original dataframe
+        df_train["id_topic"] = output_artifacts.cluster_labels
+        # Enrich df_train with distance to centroids metric
+        df_train = enrich_df_train_w_dist_to_centroid(df_train, output_artifacts)
 
         # 4.3) Insert training run metadata into "topics_model_training_runs" table
         df_run = build_topics_model_training_run_df(input_config, output_artifacts, id_mlflow_run)
