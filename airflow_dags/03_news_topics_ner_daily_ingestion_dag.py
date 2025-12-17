@@ -10,7 +10,8 @@ from news_nlp.ingestion.simulated_ingestion import load_fraction_prod_into_news_
 DAG_ID = "03_news_topics_ner_daily_ingestion"
 
 # Must align with DAG start_date (same instant in time)
-START_LOGICAL_DT_ISO = "2025-12-01T00:00:00+00:00"
+SIM_START = pendulum.datetime(2025, 12, 17, 20, 30, tz="UTC")
+START_LOGICAL_DT_ISO = SIM_START.to_iso8601_string()
 
 # TSV_PATH = Path("/opt/airflow/data/raw/test.tsv")
 
@@ -34,7 +35,7 @@ def ingest_task(tsv_path: str, start_logical_dt_iso: str, period_seconds: int, f
 
 with DAG(
     dag_id=DAG_ID,
-    start_date=pendulum.datetime(2025, 12, 1, tz="UTC"),
+    start_date=SIM_START,
     schedule=SCHEDULE,
     catchup=False,
     max_active_runs=1,

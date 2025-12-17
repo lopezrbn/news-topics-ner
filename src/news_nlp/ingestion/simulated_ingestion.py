@@ -11,8 +11,12 @@ import pandas as pd
 
 
 def _parse_iso_dt(value: str) -> datetime:
-    # Airflow logical_date is tz-aware; we keep tz awareness end-to-end.
-    return datetime.fromisoformat(value)
+    # Accept 'Z' as UTC (ISO-8601 shorthand) and normalize to '+00:00'
+    v = value.strip()
+    if v.endswith("Z"):
+        v = v[:-1] + "+00:00"
+    return datetime.fromisoformat(v)
+
 
 
 def load_fraction_prod_into_news_table(
@@ -23,6 +27,7 @@ def load_fraction_prod_into_news_table(
     logical_date,  # pendulum.DateTime from Airflow context
     *,
     data_sep: str = "\t",
+    loop: bool = True,
 ) -> int:
     """
     Load a deterministic slice of the TSV into the news table using the existing loader,
@@ -60,15 +65,29 @@ def load_fraction_prod_into_news_table(
         return 0
 
     batch_size = max(1, math.ceil(total_rows * fraction_per_run))
+    num_batches = math.ceil(total_rows / batch_size)
 
-    start_row = run_index * batch_size
+    if loop:
+        run_index_eff = run_index % num_batches
+    else:
+        run_index_eff = run_index
+
+    start_row = run_index_eff * batch_size
     end_row = min(start_row + batch_size, total_rows)
 
-    if start_row >= total_rows:
+    if not loop and start_row >= total_rows:
         print("Dataset exhausted; selecting 0 rows.")
         return 0
 
     df_slice = df_raw.iloc[start_row:end_row].copy()
+
+    print(
+        f"[diagnostic] start_dt={start_dt.isoformat()} run_dt={run_dt.isoformat()} "
+        f"delta_seconds={delta_seconds} period_seconds={period_seconds} "
+        f"run_index={run_index} run_index_eff={run_index_eff} "
+        f"total_rows={total_rows} batch_size={batch_size} num_batches={num_batches} "
+        f"start_row={start_row} end_row={end_row} loop={loop}"
+    )
 
     # Write slice to a temporary TSV file for ingestion
     path_df_slice = "temp_slice.tsv"
