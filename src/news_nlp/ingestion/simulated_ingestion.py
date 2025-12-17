@@ -90,7 +90,7 @@ def load_fraction_prod_into_news_table(
     )
 
     # Write slice to a temporary TSV file for ingestion
-    path_df_slice = "temp_slice.tsv"
+    path_df_slice = Path("temp_slice.tsv")
     df_slice.to_csv(path_df_slice, sep=data_sep, index=False)
 
     print(
