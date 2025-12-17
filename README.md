@@ -27,7 +27,7 @@ flowchart TB
     AF -->|"orchestrates"| P
     P <-->|"reads/writes"| DB
     P -->|"logs runs"| MLF
-    DB -->|"reads"| API
+    DB -->|"reads"| DB
     API -->|"tracks (opt.)"| MLF
   end
 
