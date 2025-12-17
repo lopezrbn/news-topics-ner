@@ -16,18 +16,18 @@ It includes:
 
 ```mermaid
 flowchart LR
-  subgraph DockerCompose["Docker Compose"]
-    DB[(PostgreSQL)]
-    AF["Airflow\n(webserver + scheduler)"]
-    MLF["MLflow Server"]
-    API["FastAPI Service"]
-  end
+  DB[(PostgreSQL)]
+  AF["Airflow (webserver + scheduler)"]
+  MLF["MLflow Server"]
+  API["FastAPI Service"]
+  P["Pipelines"]
 
-  AF -->|runs pipelines| P["Python pipelines/jobs"]
-  P -->|reads/writes| DB
-  P -->|logs runs/models| MLF
-  API -->|reads models + writes results| DB
-  API -->|uses MLflow metadata (optional)| MLF
+  AF -->|"runs pipelines"| P
+  P -->|"reads and writes"| DB
+  P -->|"logs runs and artifacts"| MLF
+  API -->|"reads models and writes results"| DB
+  API -->|"optionally queries MLflow"| MLF
+
 ```
 
 ---
