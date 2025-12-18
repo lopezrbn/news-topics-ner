@@ -1,0 +1,306 @@
+# API Reference
+
+This document describes the **FastAPI** service shipped with this repository:
+- what the API does,
+- how to run it (via Docker Compose),
+- endpoints and request/response schemas,
+- and usage examples.
+
+The authoritative schema is always available via Swagger:
+- `http://localhost:8000/docs`
+
+---
+
+## 1) Overview
+
+The API provides NLP inference for news text:
+
+- **Topic detection** (using the latest active topics detector run)
+- **Named Entity Recognition (NER)** (spaCy)
+- **Combined analysis** (topics + entities)
+
+The API is implemented under:
+- `src/news_nlp/api/`
+
+---
+
+## 2) Base URL and docs
+
+When running the Docker Compose stack with default ports:
+
+- Base URL: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/docs`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+---
+
+## 3) Running the API
+
+The recommended way to run the API is via Docker Compose:
+
+```bash
+docker compose up --build api
+```
+
+In the full stack, the API is started automatically:
+
+```bash
+docker compose up --build
+```
+
+Health check:
+
+```bash
+curl -f http://localhost:8000/health
+```
+
+---
+
+## 4) Authentication
+
+There is **no authentication layer** (technical evaluation scope).
+
+Do not expose this API to the public internet without adding:
+- authentication/authorization,
+- request throttling,
+- and proper secrets management.
+
+---
+
+## 5) Schemas
+
+Request/response schemas are defined in:
+
+- `src/news_nlp/api/schemas.py`
+
+At a high level, the API expects a single news item:
+
+- `title` (string)
+- `text` (string)
+
+and returns:
+- a topics payload (topic id/name/top terms, run id)
+- a list of extracted entities (text spans + labels)
+
+> Exact fields may evolve; always refer to `/docs` for the source of truth.
+
+---
+
+## 6) Endpoints
+
+### 6.1 `GET /health`
+
+**Purpose**
+- Service health check.
+
+**Example**
+
+```bash
+curl -s http://localhost:8000/health
+```
+
+**Typical response**
+
+```json
+{"status":"ok"}
+```
+
+---
+
+### 6.2 `POST /v1/topics`
+
+**Purpose**
+- Predict the most likely topic for the provided text using the active topics model run.
+
+**Request**
+
+```json
+{
+  "title": "Example title",
+  "text": "Example content..."
+}
+```
+
+**Response (shape)**
+
+```json
+{
+  "id_run": 1,
+  "id_topic": 7,
+  "topic_name": "Tech product launches",
+  "top_terms": ["apple", "product", "launch", "..."]
+}
+```
+
+**Notes**
+- If `topic_name` is not available (LLM naming disabled), the API can still return:
+  - `id_topic` and `top_terms`.
+
+---
+
+### 6.3 `POST /v1/entities`
+
+**Purpose**
+- Extract entities from the provided text using spaCy.
+
+**Request**
+
+```json
+{
+  "title": "Example title",
+  "text": "Apple announced new products in California. Tim Cook presented the lineup."
+}
+```
+
+**Response (shape)**
+
+```json
+[
+  {"text": "Apple", "label": "ORG", "start_char": 0, "end_char": 5},
+  {"text": "California", "label": "GPE", "start_char": 33, "end_char": 43},
+  {"text": "Tim Cook", "label": "PERSON", "start_char": 45, "end_char": 53}
+]
+```
+
+---
+
+### 6.4 `POST /v1/analyze`
+
+**Purpose**
+- Run both topic prediction and NER extraction and return a combined response.
+
+**Request**
+
+```json
+{
+  "title": "Example title",
+  "text": "Apple announced new products in California. Tim Cook presented the lineup."
+}
+```
+
+**Response (shape)**
+
+```json
+{
+  "topics": {
+    "id_run": 1,
+    "id_topic": 7,
+    "topic_name": "Tech product launches",
+    "top_terms": ["apple", "product", "launch", "..."]
+  },
+  "entities": [
+    {"text": "Apple", "label": "ORG", "start_char": 0, "end_char": 5},
+    {"text": "California", "label": "GPE", "start_char": 33, "end_char": 43},
+    {"text": "Tim Cook", "label": "PERSON", "start_char": 45, "end_char": 53}
+  ]
+}
+```
+
+---
+
+## 7) Usage examples
+
+### 7.1 cURL (topics)
+
+```bash
+curl -s http://localhost:8000/v1/topics   -H "Content-Type: application/json"   -d '{
+    "title": "Example news title",
+    "text": "Apple announced new products in California. Tim Cook presented the lineup."
+  }'
+```
+
+### 7.2 cURL (entities)
+
+```bash
+curl -s http://localhost:8000/v1/entities   -H "Content-Type: application/json"   -d '{
+    "title": "Example news title",
+    "text": "Apple announced new products in California. Tim Cook presented the lineup."
+  }'
+```
+
+### 7.3 cURL (analyze)
+
+```bash
+curl -s http://localhost:8000/v1/analyze   -H "Content-Type: application/json"   -d '{
+    "title": "Example news title",
+    "text": "Apple announced new products in California. Tim Cook presented the lineup."
+  }'
+```
+
+### 7.4 Python (requests)
+
+```python
+import requests
+
+url = "http://localhost:8000/v1/analyze"
+payload = {
+    "title": "Example news title",
+    "text": "Apple announced new products in California. Tim Cook presented the lineup."
+}
+
+r = requests.post(url, json=payload, timeout=30)
+r.raise_for_status()
+print(r.json())
+```
+
+---
+
+## 8) Operational dependencies
+
+The API depends on:
+
+- Postgres (`news_nlp` DB)
+  - reads the active topics run and topic metadata
+  - writes optional inference logs (if enabled)
+
+- Topic model artifacts on disk
+  - generated by training pipelines
+  - typically under `models/topics_detector/<run_id>/...`
+
+- spaCy model assets
+  - loaded from runtime storage or downloaded if missing
+
+If you get errors such as “model not found”, the fix is usually:
+1) start the Docker stack,
+2) run the initial setup DAG,
+3) ensure the model artifacts exist (generated at runtime).
+
+---
+
+## 9) Error handling (common cases)
+
+### 9.1 Missing model artifacts
+
+Symptom:
+- `FileNotFoundError` while loading topics detector artifacts.
+
+Resolution:
+- run the training pipeline:
+  - `02_topics_detector_train_pipeline.py`
+- or trigger the Airflow DAG `01_news_topics_ner_initial_setup`
+
+### 9.2 Missing active run
+
+Symptom:
+- error while resolving `id_run` (no active run in `topics_model_training_runs`)
+
+Resolution:
+- train the topics detector (same as above).
+
+### 9.3 Invalid request payload
+
+Symptom:
+- `422 Unprocessable Entity`
+
+Resolution:
+- check the request matches schemas in `/docs`.
+
+---
+
+## Related documents
+
+- `docs/ARCHITECTURE.md`
+- `docs/SETUP_AND_DEPLOYMENT.md`
+- `docs/PIPELINES_AND_DAGS.md`
+- `docs/MODELING_AND_EVALUATION.md`
+- `docs/TROUBLESHOOTING.md`
